@@ -2,16 +2,18 @@
 
 use strict;
 use warnings;
-use Test::More tests=>3;
+use Test::More tests=>1;
 
 BEGIN { 
   push @INC, './lib';
-  use_ok('Garden');
 }
 
+use Garden;
+
 my $garden = Garden->new(paths=>['./t/templates']);
-ok (ref $garden eq 'Garden'), "new() works.";
 
 my $test = $garden->get('dispatch');
 ok (ref $test eq 'Garden::Template');
+
+## TODO: the rest of the test, once multiple dispatch is in place.
 

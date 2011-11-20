@@ -2,15 +2,15 @@
 
 use strict;
 use warnings;
-use Test::More tests=>9;
+use Test::More tests=>7;
 
 BEGIN { 
   push @INC, './lib';
-  use_ok('Garden');
 }
 
+use Garden;
+
 my $garden = Garden->new(paths=>['./t/templates']);
-ok ref $garden eq 'Garden', 'Garden::new()';
 
 my $test = $garden->get('basic/hello');
 ok ref $test eq 'Garden::Template', 'Garden::get()';
