@@ -12,7 +12,7 @@ use Garden::Repeat;
 sub new {
   my ($class, %opts) = @_;
   my %self = ( 'template' => '' ); ## populate this.
-  for my $need ('namespace', 'signature') {
+  for my $need ('name', 'namespace', 'signature') {
     if (exists $opts{$need}) {
       $self{$need} = $opts{$need};
     }
@@ -21,6 +21,10 @@ sub new {
     }
   }
   return bless \%self, $class;
+}
+
+sub name {
+  return $_[0]->{name};
 }
 
 sub namespace {
@@ -61,7 +65,10 @@ sub render {
   my $end_ex   = $syntax->{delimiters}[1];
   ## First, let's find plain simple variables.
   ## TODO: support options including 'sep='.
-  for my $var (keys %{$data}) {
+  for my $var (@{$self->signature}) {
+    if (! exists $data->{$var}) {
+      croak $self->name . " requires '$var' parameter.";
+    }
     my $value = $data->{$var};
     my $valtype = ref $value;
     if ($valtype eq 'ARRAY') {

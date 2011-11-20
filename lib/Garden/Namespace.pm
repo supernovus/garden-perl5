@@ -215,6 +215,7 @@ sub load_defs {
         ##[ns,load] Found single-line template block.
         my @signature = split(/[,\s]+/, $2);
         my $template = Garden::Template->new(
+          name      => $1,
           namespace => $self,
           signature => \@signature,
         );
@@ -226,6 +227,7 @@ sub load_defs {
         ##[ns,load] Found multi-line template block.
         my @signature = split(/[,\s]+/, $2);
         $current_block = Garden::Template->new(
+          name      => $1,
           namespace => $self, 
           signature => \@signature,
         );
