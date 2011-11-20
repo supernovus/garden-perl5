@@ -1,0 +1,15 @@
+// For this set of stuf, we're using -> instead of : to apply templates.
+apply "->" 
+
+hello (name) {{
+  Hello [[name]], how are you?
+}}
+
+hello (names) {{
+  [[names->hello(*name)]]
+}}
+
+hello (names, greeting) {{
+  Hello [[names;sep=", "]], [[greeting]]
+}}
+

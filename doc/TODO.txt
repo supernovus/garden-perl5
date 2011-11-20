@@ -1,0 +1,5 @@
+## The number is a rank from 1 (most important) to 9 (least important.)
+
+2 - Ability to use Dicts.
+8 - Multiple dispatch based on signature.
+

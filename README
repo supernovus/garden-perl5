@@ -1,0 +1,10 @@
+Garden.pm: A Functional Template engine for Perl 5
+----------------------------------------------------
+
+Garden is the name of a Template engine I'm working on for both Perl 5 and
+Perl 6. It is heavily inspired by StringTemplate from Java, but with added
+features and abilities derived from Flower (my XML application engine for
+Perl 6, itself inspired by and originally based on the TAL/METAL template 
+engines.)
+
+Templates written for one version of Garden should work in any implementation.

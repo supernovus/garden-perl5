@@ -1,0 +1,10 @@
+// Include the templates from 'greetings' in our namespace.
+// We're testing multiple dispatch rules.
+import "greetings"
+
+dispatch (me, users, greeting) {{
+  [[hello(name=me)]]
+  [[hello(names=users)]]
+  [[hello(names=users, greeting)]]
+}}
+
