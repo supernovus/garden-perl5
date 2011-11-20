@@ -1,0 +1,31 @@
+## Simple includes with no paramters.
+
+testSimple (name) {{
+Hello [[name]], [[greeting()]]
+}}
+
+greeting () {{ how are you? }}
+
+## A more advanced include passing params directly.
+
+passParams (name, greeting) {{
+The guy says: [[sayGreeting(greeting, name)]].
+}}
+
+sayGreeting (greeting, name) {{ "Hello [[name]], [[greeting]]" }}
+
+## Another include, now with named params.
+
+passNamed (name, greeting) {{
+The guy says: [[sayGreets(dude=name, greets=greeting)]].
+}}
+
+sayGreets (dude, greets) {{ "Yo [[dude]]! [[greets]]" }}
+
+## Finally, an include using named params, with one pointing to a template.
+passNameTemplate (name) {{
+The dude says: [[sayGreets(dude=name, greets=myGreeting(name))]]!
+}}
+
+myGreeting (name) {{ It's been a while since I've seen ya [[name]] }}
+

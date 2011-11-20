@@ -79,8 +79,52 @@ sub render {
     }
     $template =~ s/\Q$start_ex\E $var \Q$end_ex\E/$value/xgsm;
   }
+  ### $1=Name, $2=Signature
+  $template =~ s/\Q$start_ex\E \s* (\w+) \((.*?)\) \s* \Q$end_ex\E/
+    $self->_callTemplate($1, $2, $data)/gmsex;
   ## TODO: implement the rest of the parser.
   return $template;
+}
+
+sub _err_unknown_var {
+  my ($self, $var) = @_;
+  croak $self->name . "attempted to pass unknown variable '$var'.";
+}
+
+## Call a template (internal method used by render().)
+sub _callTemplate {
+  my ($self, $name, $sigtext, $data) = @_;
+  my @signature = split(/\s*[;,]+\s*/, $sigtext);
+  my %call; ## populate with the call parameters.
+  for my $sig (@signature) {
+    if (! defined $sig || $sig eq '') { next; }
+    if ($sig =~ /=/) {
+      my ($tvar, $svar) = split(/\s*=\s*/, $sig);
+      my $value;
+      if ($svar =~ /(\w+)\((.*?)\)/) {
+        $value = $self->_callTemplate($1, $2, $data);
+      }
+      else {
+        if (exists $data->{$svar}) {
+          $value = $data->{$svar};
+        }
+        else {
+          $self->_err_unknown_var($svar);
+        }
+      }
+      $call{$tvar} = $value;
+    }
+    else {
+      if (exists $data->{$sig}) {
+        $call{$sig} = $data->{$sig};
+      }
+      else {
+        $self->_err_unknown_var($sig);
+      }
+    }
+  }
+  my $template = $self->namespace->get($name);
+  return $template->render(\%call);
 }
 
 ## End of class
