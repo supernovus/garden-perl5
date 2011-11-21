@@ -28,7 +28,7 @@ In './templates/testTemplate.tmpl':
 In './test.pl':
 
   use Garden;
-  my $garden = $garden->new(paths=>['./templates']);
+  my $garden = Garden->new(paths=>['./templates']);
   my $test   = $garden->get("testTemplate");
   my $data   = {
     name  => "World",
