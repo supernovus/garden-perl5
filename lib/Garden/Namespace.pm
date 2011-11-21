@@ -66,12 +66,17 @@ sub get_syntax {
     }
     return \%syntax;
   }
-  if (exists $self->{syntax}->{$type}) {
-    return $self->{syntax}->{$type};
-  }
-  my $global_syntax = $self->engine->syntax;
-  if (exists $global_syntax->{$type}) {
-    return $global_syntax->{$type};
+  my @namespaces = ($self->{syntax}, $self->engine->syntax);
+  for my $ns (@namespaces) {
+    if (exists $ns->{$type}) {
+      my $synval = $ns->{$type};
+      if (ref $synval eq 'ARRAY') {
+        return @{$synval};
+      }
+      else {
+        return $synval;
+      }
+    }
   }
   croak "Invalid syntax type '$type' requested.";
 }

@@ -1,0 +1,20 @@
+# A fairly boring example of the Repeat object.
+
+testRepeat (array) {{
+---
+[[array:arrItem(*item)]]
+}}
+
+arrItem (item) {{ 
+  [[arrItem.number]] [[item]]
+}}
+
+withHash (hash) {{
+---
+[[hash:hashItem(*key, *val)]]
+}}
+
+hashItem (key, val) {{
+  ([[hashItem.number]]) [[key]] = [[val]]
+}}
+

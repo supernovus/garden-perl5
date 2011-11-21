@@ -1,10 +1,11 @@
-## The number is a rank from 1 (most important) to 9 (least important.)
+## The number is a rank from 1 (most important) to 99 (least important.)
 
-1 - Tests for attribute access.
-1 - Conditional statements.
-2 - Recurse object.
-2 - Ability to use Dicts.
-5 - Anonymous templates.
-6 - Plugins, for extra functionality.
-9 - Multiple dispatch based on signature.
+1  - Conditional statements.
+5  - Tests for 'import' statement.
+5  - Tests for 'include' statement.
+10 - Method calls on variable attributes.
+10 - Anonymous templates.
+15 - Tests for syntax overrides.
+50 - Plugins, for extra functionality.
+99 - Multiple dispatch based on signature?
 

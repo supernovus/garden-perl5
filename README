@@ -8,3 +8,46 @@ Perl 6, itself inspired by and originally based on the TAL/METAL template
 engines.)
 
 Templates written for one version of Garden should work in any implementation.
+
+See the tests for better examples, but here's a quick one:
+
+In './templates/testTemplate.tmpl':
+
+  testTemplate (name, users) {{
+  Hello [[name]], how are you?
+  [[users.count]] users said hi:
+  [[users:userList(*name, *opts)]]
+  }}
+  
+  userList (name, opts) {{
+    * [[name]]: [[opts.roles:userRoles(*role); sep=", "]]
+  }}
+
+  userRoles (role) {{ #[[userRoles.number]] [[role]] }}
+
+In './test.pl':
+
+  use Garden;
+  my $garden = $garden->new(paths=>['./templates']);
+  my $test   = $garden->get("testTemplate");
+  my $data   = {
+    name  => "World",
+    users => {
+      Bob    => { roles => ['user'] },
+      Kevin  => { roles => ['user','admin'] },
+    },
+  };
+  say $test->render($data);
+
+Should print the following text:
+
+  Hello World, how are you?
+  2 users said hi:
+    * Bob: #1 user
+    * Kevin: #1 user, #2 admin
+
+That shows off a few features, but there's plenty more in the tests.
+
+Author: Timothy Totten
+License: Artistic License 2.0
+

@@ -7,12 +7,16 @@ package Garden::Repeat;
 use strict;
 use warnings;
 
+#use Huri::Debug show => ['repeat'];
+
 sub new {
   my ($class, $index, $length) = @_;
+  ##[repeat,new]= $class, $index, $length
   my $self = {
     index  => $index,
     length => $length,
   };
+  ##[repeat,new]= $self
   return bless $self, $class;
 }
 
@@ -21,6 +25,10 @@ sub index {
 }
 
 sub length {
+  return $_[0]->{length};
+}
+
+sub count {
   return $_[0]->{length};
 }
 

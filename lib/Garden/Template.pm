@@ -7,7 +7,7 @@ use Carp;
 
 use Garden::Repeat;
 
-#use Huri::Debug show => ['render'];
+#use Huri::Debug show => ['apply'];
 
 sub new {
   my ($class, %opts) = @_;
@@ -75,27 +75,61 @@ sub _get_attrib {
   my $type = ref $object;
   if (! $type) { return $object; } ## Should we fail instead?
   if ($type eq 'HASH') {
-    if (exists $type->{$attrib}) {
-      return $type->{$attrib};
+    if (exists $object->{$attrib}) {
+      return $object->{$attrib};
     }
-    elsif (exists $type->{DEFAULT}) {
-      return $type->{DEFAULT};
+    elsif (exists $object->{DEFAULT}) {
+      return $object->{DEFAULT};
     }
     else {
       croak "No '$attrib' member in Hash.";
     }
   }
-  else {
-    if ($type->can($attrib)) {
-      return $type->$attrib();
+  elsif ($type eq 'ARRAY') {
+    given ($attrib) {
+      when ('count') {
+        return scalar @{$object};
+      }
+      when ('first') {
+        return $object->[0];
+      }
+      when ('last') {
+        my $last = scalar @{$object} - 1;
+        return $object->[$last];
+      }
+      default {
+        croak "Array method '$attrib' is not defined.";
+      }
     }
-    elsif ($type->can('DEFAULT')) {
-      return $type->DEFAULT();
+  }
+  elsif ($type eq 'CODE') {
+   return $object->($attrib);
+  }
+  else {
+    if ($object->can($attrib)) {
+      return $object->$attrib();
+    }
+    elsif ($object->can('DEFAULT')) {
+      return $object->DEFAULT($attrib);
     }
     else {
       croak "No '$attrib' method in Object.";
     }
   }
+}
+
+## Parse attributes.
+sub _get_attribs {
+  my ($object, $attrstring) = @_;
+  if (!defined $attrstring || $attrstring eq '') {
+    return $object;
+  }
+  $attrstring =~ s/^\.//g; ## Strip leading dot.
+  my @attrs = split(/\./, $attrstring);
+  for my $attr (@attrs) {
+    $object = _get_attrib($object, $attr);
+  }
+  return $object;
 }
 
 ## Render the template using the given data.
@@ -104,96 +138,134 @@ sub _get_attrib {
 sub render {
   my $self = shift;
   my $data;
+  my $local;
   if (ref $_[0] eq 'HASH') {
     $data = shift;
+    if (ref $_[0] eq 'HASH') {
+      $local = shift;
+    }
   }
   else {
     my %hash = @_;
     $data = \%hash;
+    $local = {};
   }
-  my $syntax = $self->namespace->get_syntax;
-  my $start_comment = $syntax->{comment}[0];
-  my $end_comment   = $syntax->{comment}[1];
-  my $note          = $syntax->{note};
+  my ($start_comment, $end_comment) = $self->namespace->get_syntax('comment');
+  my ($start_ex, $end_ex) = $self->namespace->get_syntax('delimiters');
+  my $note   = $self->namespace->get_syntax('note');
+  my $apply  = $self->namespace->get_syntax('apply');
+
   my $template = $self->{template};
   ##[temp,render]= $template
   $template =~ s/\Q$start_comment\E (.*?) \Q$end_comment\E//xgsm;
   $template =~ s/\Q$note\E(.*?)$//xg;
-  my $start_ex = $syntax->{delimiters}[0];
-  my $end_ex   = $syntax->{delimiters}[1];
-  my $apply    = $syntax->{apply};
   my $nested   = '\s* (\w+) \((.*?)\) \s*';
   my $opts     = '(?: \s* ; \s* (.*?) )?';
-  my $attrib   = '\. (\w+)';
+  my $attribs  = '(?: ((?: \. \w+)+))?';
 
-  ## First, let's find variables (including applications.)
-  for my $var (@{$self->signature}) {
-    if (! exists $data->{$var}) {
-      croak $self->name . " requires '$var' parameter.";
+  ## TODO: Change how plugins work, and add them to the search.
+  my @search = (
+    {
+      find => $self->signature,
+      data => $data,
+      test => 1,
+    },
+    {
+      data => $self->namespace->dicts,
+    },
+    {
+      data => $local,
+    },
+  );
+
+  for my $search (@search) {
+    my $source = $search->{data};
+    my $test   = 0;
+    my $find;
+    if (exists $search->{find}) {
+      $find = $search->{find};
     }
-    my $value = $data->{$var};
+    else {
+      my @keys = keys %{$source};
+      $find = \@keys;
+    }
+    if (exists $search->{test}) {
+      $test = $search->{test};
+    }
+    for my $var (@{$find}) {
+      if ($test && ! exists $source->{$var}) {
+        croak $self->name . " requires '$var' parameter.";
+      }
+      my $value = $source->{$var};
 
-    ## 1/4, variable attribute with application
-    $template =~ s/\Q$start_ex\E \s* $var $attrib \s* \Q$apply\E
-      $nested $opts \Q$end_ex\E/
-      $self->_apply(_get_attrib($value, $1), $2, $3, $data, 
-      _getopts($4))/gmsex;
-
-    ## 2/4, variable with application.
-    $template =~ s/\Q$start_ex\E \s* $var \s* \Q$apply\E 
-      $nested $opts \Q$end_ex\E/
-      $self->_apply($value, $1, $2, $data, _getopts($3))/gmsex;
-
-    ## 3/4, variable attribute.
-    $template =~ s/\Q$start_ex\E \s* $var $attrib $opts \Q$end_ex\E/
-      $self->_expand(_get_attrib($value, $1), $data, _getopts($2))/gmsex;
-
-    ## 4/4, variable.
-    $template =~ s/\Q$start_ex\E $var $opts \Q$end_ex\E/
-      $self->_expand($value, $data, _getopts($1))/gmsex;
-
+      ## application
+      $template =~ s/\Q$start_ex\E \s* $var $attribs \s* \Q$apply\E
+        $nested $opts \Q$end_ex\E/
+        $self->_apply(_get_attribs($value, $1), $2, $3, $data, 
+        _getopts($4), $local)/gmsex;
+  
+      ## variable
+      $template =~ s/\Q$start_ex\E \s* $var $attribs $opts \Q$end_ex\E/
+        $self->_expand(_get_attribs($value, $1), $data, 
+        _getopts($2), $local)/gmsex;
+  
+    }
   }
-
-  ## TODO: Parse dicts here.
 
   ## Now parse nested template calls.
   ### $1=Name, $2=Signature
   $template =~ s/\Q$start_ex\E $nested \Q$end_ex\E/
-    $self->_callTemplate($1, $2, $data)/gmsex;
+    $self->_callTemplate($1, $2, $data, $local)/gmsex;
 
   
   return $template;
 }
 
 sub _expand {
-  my ($self, $value, $data, $opts) = @_;
+  my ($self, $value, $data, $opts, $local) = @_;
   my $join = _getopt(qr/^sep/, $opts, '');
   my $valtype = ref $value;
   if ($valtype eq 'ARRAY') {
     $value = join($join, @{$value});
   }
   elsif ($valtype eq 'HASH') {
-    $value = join($join, keys %{$value});
+    $value = join($join, sort keys %{$value});
   }
   return $value;
 }
 
 sub _apply {
-  my ($self, $value, $template, $params, $data, $opts) = @_;
+  my ($self, $value, $template, $params, $data, $opts, $local) = @_;
   my @values;
   my $join = _getopt(qr/^sep/, $opts, '');
   my $valtype = ref $value;
+  my %local;
+  for my $loc (keys %{$local}) {
+    $local{$loc} = $local->{$loc};
+  }
   if ($valtype eq 'ARRAY') {
+    my $count = scalar @{$value};
+    my $cur   = 0;
     for my $val (@{$value}) {
+      ##[temp,apply]= $count, $cur
+      my $repeat = Garden::Repeat->new($cur++, $count);
+      $local{$template} = $repeat;
       my @rec = ($val);
-      push(@values, $self->_callTemplate($template, $params, $data, \@rec));
+      push(@values, $self->_callTemplate($template, $params, $data, 
+        \%local, \@rec));
     }
   }
   elsif ($valtype eq 'HASH') {
-    for my $key (keys %{$value}) {
+    my @keys = sort keys %{$value};
+    my $count = scalar @keys;
+    my $cur   = 0;
+    for my $key (@keys) {
+      my $repeat = Garden::Repeat->new($cur++, $count);
+      $local{$template} = $repeat;
       my $val = $value->{$key};
       my @rec = ($key, $val);
-      push(@values, $self->_callTemplate($template, $params, $data, \@rec));
+      push(@values, $self->_callTemplate($template, $params, $data, 
+        \%local, \@rec));
     }
   }
   return join($join, @values);
@@ -206,7 +278,7 @@ sub _err_unknown_var {
 
 ## Call a template (internal method.)
 sub _callTemplate {
-  my ($self, $name, $sigtext, $data, $recurse) = @_;
+  my ($self, $name, $sigtext, $data, $local, $recurse) = @_;
   my $positional = $self->namespace->get_syntax('positional');
   my @signature = split(/\s*[;,]+\s*/, $sigtext);
   my %call; ## populate with the call parameters.
@@ -217,7 +289,7 @@ sub _callTemplate {
       my ($tvar, $svar) = split(/\s*=\s*/, $sig);
       my $value;
       if ($svar =~ /(\w+)\((.*?)\)/) {
-        $value = $self->_callTemplate($1, $2, $data, $recurse);
+        $value = $self->_callTemplate($1, $2, $data, $local, $recurse);
       }
       else {
         if (exists $data->{$svar}) {
@@ -243,7 +315,7 @@ sub _callTemplate {
     }
   }
   my $template = $self->namespace->get($name);
-  return $template->render(\%call);
+  return $template->render(\%call, $local);
 }
 
 ## End of class

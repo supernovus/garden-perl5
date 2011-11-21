@@ -1,0 +1,12 @@
+attrTest (user) {{ Hello [[user.name]], [[user.greeting]] }}
+
+Multilevel (user) {{ Hello [[user.name]], I see you are the [[user.job.title]] here. }}
+
+Recurse (user) {{
+Hello [[user.name]], you have [[user.mail.count]] messages waiting.
+[[user.mail:showMessages(*msg)]]
+}}
+
+showMessages (msg) {{ 
+  #[[showMessages.number]] - [[msg.title]] <[[msg.from]]>
+}}
