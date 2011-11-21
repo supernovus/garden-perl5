@@ -20,10 +20,12 @@ In './templates/testTemplate.tmpl':
   }}
   
   userList (name, opts) {{
-    * [[name]]: [[opts.roles:userRoles(*role); sep=", "]]
+    * [[name]]: [[opts.roles:userRoles(*role); sep=", "]] [[?opts.leader:Leader()]]
   }}
 
   userRoles (role) {{ #[[userRoles.number]] [[role]] }}
+
+  Leader () {{ -- Is a team leader. }}
 
 In './test.pl':
 
@@ -33,8 +35,9 @@ In './test.pl':
   my $data   = {
     name  => "World",
     users => {
-      Bob    => { roles => ['user'] },
-      Kevin  => { roles => ['user','admin'] },
+      Bob    => { roles => ['user'],          leader => 0 },
+      Kevin  => { roles => ['user','admin'],  leader => 0 },
+      Joe    => { roles => ['user','tester'], leader => 1 },
     },
   };
   say $test->render($data);
@@ -42,9 +45,10 @@ In './test.pl':
 Should print the following text:
 
   Hello World, how are you?
-  2 users said hi:
+  3 users said hi:
     * Bob: #1 user
     * Kevin: #1 user, #2 admin
+    * Joe: #1 user, #2 tester -- Is a team leader.
 
 That shows off a few features, but there's plenty more in the tests.
 

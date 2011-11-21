@@ -1,6 +1,5 @@
 ## The number is a rank from 1 (most important) to 99 (least important.)
 
-1  - Conditional statements.
 5  - Tests for 'import' statement.
 5  - Tests for 'include' statement.
 10 - Method calls on variable attributes.

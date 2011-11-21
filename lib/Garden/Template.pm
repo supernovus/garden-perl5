@@ -40,6 +40,15 @@ sub signature {
   return $_[0]->{signature};
 }
 
+## Shared regexes.
+sub regex {
+  return {
+    nested   => '\s* (\w+) \((.*?)\) \s*',
+    opts     => '(?: \s* ; \s* (.*?) )?',
+    attribs  => '(?: ((?: \. \w+)+))?',
+  };
+}
+
 ## Parse an option string.
 sub _getopts {
   my ($optstring) = @_;
@@ -132,6 +141,33 @@ sub _get_attribs {
   return $object;
 }
 
+## Get the params from a search def
+sub _get_search {
+  my $search = shift;
+  my $source = $search->{data};
+  my $test   = 0;
+  my $find;
+  if (exists $search->{find}) {
+    $find = $search->{find};
+  }
+  else {
+    my @keys = keys %{$source};
+    $find = \@keys;
+  }
+  if (exists $search->{test}) {
+    $test = $search->{test};
+  }
+  return ($source, $test, $find);
+}
+
+## See if a source has the appropriate params
+sub _source_has {
+  my ($self, $source, $var, $test) = @_;
+  if ($test && ! exists $source->{$var}) {
+    croak $self->name . " requires '$var' parameter.";
+  }
+}
+
 ## Render the template using the given data.
 ## Can take either a Hash reference, or named arguments.
 ## It can't mix them, sorry, use one or the other.
@@ -152,6 +188,7 @@ sub render {
   }
   my ($start_comment, $end_comment) = $self->namespace->get_syntax('comment');
   my ($start_ex, $end_ex) = $self->namespace->get_syntax('delimiters');
+  my ($cond, $csep) = $self->namespace->get_syntax('condition');
   my $note   = $self->namespace->get_syntax('note');
   my $apply  = $self->namespace->get_syntax('apply');
 
@@ -159,43 +196,35 @@ sub render {
   ##[temp,render]= $template
   $template =~ s/\Q$start_comment\E (.*?) \Q$end_comment\E//xgsm;
   $template =~ s/\Q$note\E(.*?)$//xg;
-  my $nested   = '\s* (\w+) \((.*?)\) \s*';
-  my $opts     = '(?: \s* ; \s* (.*?) )?';
-  my $attribs  = '(?: ((?: \. \w+)+))?';
+  my $regex    = $self->regex;
+  my $nested   = $regex->{nested};
+  my $opts     = $regex->{opts};
+  my $attribs  = $regex->{attribs};
 
   ## TODO: Change how plugins work, and add them to the search.
   my @search = (
-    {
+    { ## 0 - Passed in data
       find => $self->signature,
       data => $data,
       test => 1,
     },
-    {
+    { ## 1 - Namespace dictionaries
       data => $self->namespace->dicts,
     },
-    {
+    { ## 2 - Local settings (repeat object, etc.)
       data => $local,
     },
   );
 
+  ## Let's look for conditional blocks.
+  my $searches = \@search;
+  $template =~ s/\Q$start_ex\E \s* \Q$cond\E (.*?) \Q$apply\E (.*?) 
+    \Q$end_ex\E/$self->_parse_condition($csep, $1, $2, $searches)/gmsex;
+
   for my $search (@search) {
-    my $source = $search->{data};
-    my $test   = 0;
-    my $find;
-    if (exists $search->{find}) {
-      $find = $search->{find};
-    }
-    else {
-      my @keys = keys %{$source};
-      $find = \@keys;
-    }
-    if (exists $search->{test}) {
-      $test = $search->{test};
-    }
+    my ($source, $test, $find) = _get_search($search);
     for my $var (@{$find}) {
-      if ($test && ! exists $source->{$var}) {
-        croak $self->name . " requires '$var' parameter.";
-      }
+      $self->_source_has($source, $var, $test);
       my $value = $source->{$var};
 
       ## application
@@ -216,9 +245,70 @@ sub render {
   ### $1=Name, $2=Signature
   $template =~ s/\Q$start_ex\E $nested \Q$end_ex\E/
     $self->_callTemplate($1, $2, $data, $local)/gmsex;
-
   
   return $template;
+}
+
+sub _get_tempdef {
+  my ($c, $actions, $nested) = @_;
+  my $tempstring = $actions->[$c];
+  if ($tempstring =~ /^ $nested $/msx) {
+    return ($1, $2);
+  }
+  else {
+    croak "Invalid template call: '$tempstring', cannot continue.";
+  }
+}
+
+sub _parse_condition {
+  my ($self, $sep, $conditions, $actions, $searches) = @_;
+  my @conditions = split(/\Q$sep\E/, $conditions);
+  my @actions    = split(/\Q$sep\E/, $actions);
+  my $negate = $self->namespace->get_syntax('negate');
+  my $regex = $self->regex;
+  my $nested  = $regex->{nested};
+  my $attribs = $regex->{attribs};
+  my $data  = $searches->[0];
+  my $local = $searches->[2];
+  my $c = 0;  ## Current condition.
+  for my $cond (@conditions) {
+    my $true = 1;
+    my ($varname, $attrs);
+    if ($cond =~ /^ (\Q$negate\E)? (\w+) $attribs $/msx) {
+      $varname = $2;
+      $attrs   = $3;
+      if ($1) { $true = 0; }
+    }
+    else {
+      croak "Invalid condition: '$cond', cannot continue.";
+    }
+    my $value;
+    for my $search (@{$searches}) {
+      my $source = $search->{data};
+      if (exists $source->{$varname}) {
+        $value = $source->{$varname};
+        last;
+      }
+    }
+    if (!defined $value) { ## Couldn't find anything, skip it.
+      $c++;
+      next;
+    }
+    $value = _get_attribs($value, $attrs);
+    if (($true && $value)||(!$true && !$value)) {
+      my ($tempname, $tempsig) = _get_tempdef($c, \@actions, $nested);
+      return $self->_callTemplate($tempname, $tempsig, $data, $local);
+    }
+    $c++;
+  }
+  my $acount = scalar @actions;
+  if ($c < $acount) {
+    my ($tempname, $tempsig) = _get_tempdef($c, \@actions, $nested);
+    return $self->_callTemplate($tempname, $tempsig, $data, $local);
+  }
+  else {
+    return ''; ## Death to failed conditionals.
+  }
 }
 
 sub _expand {

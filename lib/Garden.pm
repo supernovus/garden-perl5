@@ -23,11 +23,11 @@ sub new {
       block      => ['{{', '}}'],
       dictblock  => ['{[', ']}'],
       comment    => ['/*', '*/'],
+      condition  => ['?',';'],
       note       => '//',
       positional => '*',
-      sysvar     => '^',
-      dictvar    => '%',
       apply      => ':',
+      negate     => '!',
     },
     paths      => [], ## Paths we search for files in.
     namespaces => {}, ## Each file we load, represents a Namespace.
