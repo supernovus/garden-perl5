@@ -5,6 +5,8 @@
 10 - Method calls on variable attributes.
 10 - Anonymous templates.
 15 - Tests for syntax overrides.
+20 - POD documentation for each library.
+20 - Build.PL for distribution building.
 50 - Plugins, for extra functionality.
 99 - Multiple dispatch based on signature?
 
