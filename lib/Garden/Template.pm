@@ -207,6 +207,7 @@ sub _err_unknown_var {
 ## Call a template (internal method.)
 sub _callTemplate {
   my ($self, $name, $sigtext, $data, $recurse) = @_;
+  my $positional = $self->namespace->get_syntax('positional');
   my @signature = split(/\s*[;,]+\s*/, $sigtext);
   my %call; ## populate with the call parameters.
   my $rec=0; ## For recursion, what entry are we on?
@@ -229,8 +230,8 @@ sub _callTemplate {
       $call{$tvar} = $value;
     }
     else {
-      if ($sig =~ /^\*/) {
-        $sig =~ s/^\*//; ## Strip the leading *.
+      if ($sig =~ /^\Q$positional\E/) {
+        $sig =~ s/^\Q$positional\E//; ## Strip the leading *.
         $call{$sig} = $recurse->[$rec++];
       }
       elsif (exists $data->{$sig}) {
