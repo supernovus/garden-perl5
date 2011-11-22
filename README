@@ -53,6 +53,10 @@ Should print the following text:
 If you are wondering why the names are in a different order, it's because
 in Perl, hashes return results unsorted. We're sorting the keys by name.
 
+Oh, and a lot of the syntax such as the {{, }}, [[, ]], etc. is configurable,
+on a per file basis, so if you want different markers, it's easy to change
+them. The defaults are used above.
+
 That shows off a few features, but there's plenty more in the tests.
 
 Author: Timothy Totten
