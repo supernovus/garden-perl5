@@ -5,6 +5,8 @@ use Carp;
 
 use Garden::Namespace;
 
+our $VERSION = 0.10;
+
 #use Huri::Debug show => ['all'];
 
 sub lines {
@@ -186,10 +188,11 @@ sub get_namespace {
   if (exists $self->{namespaces}->{$name}) {
     return $self->{namespaces}->{$name};
   }
-  my $file = $name . $self->{extension};
+  my $file = $name . '.' . $self->{extension};
   for my $path (@paths) {
-    if (-f $path.$file) {
-      return $self->load_namespace_file($path.$file, $name);
+    my $fpath = $path . '/' . $file;
+    if (-f $fpath) {
+      return $self->load_namespace_file($fpath, $name);
     }
   }
   croak "Namespace '$name' was not found, cannot continue.";

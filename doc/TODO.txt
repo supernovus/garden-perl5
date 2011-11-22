@@ -1,12 +1,24 @@
-## The number is a rank from 1 (most important) to 99 (least important.)
+## TODO List, with given targets. When all items in TODO are done,
+## that target will be considered reached.
+##
+## Priorities:
+##
+##  *** This MUST be included in the target.
+##  **  This SHOULD be included in the target.
+##  *   This COULD be included in the target.
 
-5  - Tests for 'import' statement.
-5  - Tests for 'include' statement.
-10 - Method calls on variable attributes.
-10 - Anonymous templates.
-15 - Tests for syntax overrides.
-20 - POD documentation for each library.
-20 - Build.PL for distribution building.
-50 - Plugins, for extra functionality.
-99 - Multiple dispatch based on signature?
+= Target: 1.0 (first stable release, implement Garden Spec 1.0)
+
+***  Tests for 'import' statement.
+***  Tests for 'include' statement.
+***  Anonymous templates.
+***  Build.PL for distribution building.
+**   Method calls on variable attributes.
+**   POD documentation for all libraries.
+**   Tests for syntax overrides.
+*    Plugins, for extra functionality.
+
+= Target: ?? (potential future ideas.)
+
+*    Multiple dispatch based on signature?
 

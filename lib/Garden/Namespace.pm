@@ -26,6 +26,7 @@ sub new {
     syntax    => {},  ## Overridden syntax settings.
     plugins   => {},  ## Section-specific plugins.
     dicts     => {},  ## Namespace dictionaries.
+    exports   => [],  ## Namespaces to export to (use caution!)
   );
   my $engine = need_opt('engine', \%opts);
   my $lines  = need_opt('lines',  \%opts);
@@ -47,6 +48,11 @@ sub templates {
 
 sub dicts {
   return $_[0]->{dicts};
+}
+
+sub add_export {
+  my ($self, $export) = @_;
+  push(@{$self->{exports}}, $export);
 }
 
 ## This returns the appropriate value.
@@ -125,7 +131,7 @@ sub add_path {
 
 ## Import the templates and dicts from another namespace.
 sub import_namespace {
-  my ($self, $nsid) = @_;
+  my ($self, $nsid, $export) = @_;
   my $namespace = $self->engine->get_namespace($nsid, paths => $self->{paths});
   my %templates = %{$namespace->templates};
   for my $tid (keys %templates) {
@@ -134,6 +140,26 @@ sub import_namespace {
   my %dicts = %{$namespace->dicts};
   for my $did (keys %dicts) {
     $self->{dicts}->{$did} = $dicts{$did};
+  }
+  ## Only use export if you really know what you're doing.
+  if ($export) {
+    $self->add_export($namespace);
+  }
+}
+
+sub add_template {
+  my ($self, $tid, $template) = @_;
+  $self->{templates}->{$tid} = $template;
+  for my $export (@{$self->{exports}}) {
+    $export->{templates}->{$tid} = $template;
+  }
+}
+
+sub add_dict {
+  my ($self, $did, $dict) = @_;
+  $self->{dicts}->{$did} = $dict;
+  for my $export (@{$self->{exports}}) {
+    $export->{dicts}->{$did} = $dict;
   }
 }
 
@@ -167,8 +193,8 @@ sub load_defs {
         $self->add_path($1);
         next;
       }
-      if ($line =~ /^\s*import\s+\"(.*?)\"/) {
-        $self->import_namespace($1);
+      if ($line =~ /^\s*import\s+\"(.*?)\"\s*(\:export)?/) {
+        $self->import_namespace($1, $2);
         next;
       }
       ## Okay, plugins. Specify a name, and a class.
@@ -225,7 +251,7 @@ sub load_defs {
           signature => \@signature,
         );
         $template->set_template($3);
-        $self->{templates}->{$1} = $template;
+        $self->add_template($1, $template);
         next;
       }
       elsif ($line =~ /^ $blockname $signature \Q$start_template\E/x) {
@@ -236,13 +262,13 @@ sub load_defs {
           namespace => $self, 
           signature => \@signature,
         );
-        $self->{templates}->{$1} = $current_block;
+        $self->add_template($1, $current_block);
         $in_block = 1;
         next;
       }
       elsif ($line =~ /^ $blockname \Q$start_dict\E/x) {
         $current_block = {};
-        $self->{dicts}->{$1} = $current_block;
+        $self->add_dict($1, $current_block);
         $in_block = 2;
         next;
       }
