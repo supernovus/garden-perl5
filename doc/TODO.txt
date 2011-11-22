@@ -1,24 +1,28 @@
-## TODO List, with given targets. When all items in TODO are done,
-## that target will be considered reached.
+## Things I'm planning to do, and in which order I plan to do them.
 ##
 ## Priorities:
 ##
-##  *** This MUST be included in the target.
-##  **  This SHOULD be included in the target.
-##  *   This COULD be included in the target.
+##  **** This MUST be included in the target.
+##  **   This SHOULD be included in the target.
+##  *    This COULD be included in the target.
+##
+## If a COULD or SHOULD item doesn't make it in the target
+## it will be moved to the next target.
 
-= Target: 1.0 (first stable release, implement Garden Spec 1.0)
+= Things to do for version 1.0 =
 
 ***  Tests for 'import' statement.
 ***  Tests for 'include' statement.
-***  Anonymous templates.
-***  Build.PL for distribution building.
-**   Method calls on variable attributes.
 **   POD documentation for all libraries.
 **   Tests for syntax overrides.
-*    Plugins, for extra functionality.
 
-= Target: ?? (potential future ideas.)
+= Things to do for a subsequent 1.x version =
 
+**   Method calls on variable attributes.
+**   Plugins, for extra functionality.
+
+= Potential future ideas =
+
+*    Anonymous templates.
 *    Multiple dispatch based on signature?
 

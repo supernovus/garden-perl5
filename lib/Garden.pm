@@ -1,3 +1,35 @@
+=head1 NAME
+
+Garden - A functional template language
+
+=head1 DESCRIPTION
+
+A Perl 5 implementation of the Garden template language.
+See https://github.com/supernovus/garden-spec/ for the specification.
+
+=head1 USAGE
+
+In ./templates/exampleTemplate.tmpl:
+
+  exampleTemplate (name) {{
+    Hello [[name]]
+  }}
+
+In your Perl 5 script:
+
+  use Garden;
+  my $garden = Garden->new(paths=>['./templates']);
+  my $template = $garden->get('templateName');
+  say $template->render(name=>"World");
+
+Returns:
+
+  Hello World
+
+See the tests in the ./t/ folder and the specification for more details.
+
+=cut
+
 package Garden;
 
 use Modern::Perl;
@@ -5,9 +37,23 @@ use Carp;
 
 use Garden::Namespace;
 
+## Our version number is a two digit number. The first represents a stable
+## API for backwards compatibility of scripts and templates, and forwards
+## compatibility of templates. Basically, any script written for version 1.0
+## will work on version 1.x. Any template written for version 1.x will work 
+## on version 1.y. The second digit is the number of updates that have been
+## committed to the library in this stable version. So 1.11 would indicate
+## 11 updates to the first major version.
+
 our $VERSION = 0.10;
 
+## Release date in ISO format.
+
+our $RELEASE = "2011-11-22T13:05:00-0800";
+
 #use Huri::Debug show => ['all'];
+
+## I'm not documenting lines(). It's a private subroutine only.
 
 sub lines {
   my $filename = shift;
@@ -15,6 +61,32 @@ sub lines {
   my @lines = <$file>;
   return @lines;
 }
+
+=head1 CLASS METHODS
+
+=over 1
+
+=item new()
+
+Create a new Garden object. This can take several optional parameters:
+
+  paths        Paths to look for templates in.                   []
+  extension    The file extension for templates without a dot    'tmpl'
+  delimiters   Delimiters for template expressions               ['[[', ']]']
+  block        Delimiters for a template block                   ['{{', '}}']
+  dictblock    Delimiters for a dictionary block                 ['{[', ']}']
+  comment      Delimiters for a comment block                    ['/*', '*/']
+  condition    Start and separator for conditional statements    [ '?', ';' ]
+  note         Prefix for a here-to-newline comment              '//'
+  positional   Prefix for positional parameters                  '*'
+  apply        Symbol to apply a template                        ':'
+  negate       Prefix to negate conditions                       '!'
+
+The typical usage would be:
+
+  my $garden = Garden->new(paths=>['./templates']);
+
+=cut
 
 sub new {
   my ($class, %opts) = @_;
@@ -39,6 +111,11 @@ sub new {
   for my $key (keys %self) {
     if (exists $opts{$key}) {
       $self{$key} = $opts{$key};
+    }
+  }
+  for my $key (keys %{$self{syntax}}) {
+    if (exists $opts{$key}) {
+      $self{syntax}->{$key} = $opts{$key};
     }
   }
   ## Okay, now let's return our object.

@@ -26,7 +26,8 @@ sub new {
     syntax    => {},  ## Overridden syntax settings.
     plugins   => {},  ## Section-specific plugins.
     dicts     => {},  ## Namespace dictionaries.
-    exports   => [],  ## Namespaces to export to (use caution!)
+    exports   => [],  ## Namespaces we export do (they must allow exports.)
+    export_ok => 1,   ## Allow (1), require (2) or disallow (0) exports.
   );
   my $engine = need_opt('engine', \%opts);
   my $lines  = need_opt('lines',  \%opts);
@@ -36,6 +37,18 @@ sub new {
   my $self = bless \%self, $class;
   $self->load_defs(@{$lines});
   return $self;
+}
+
+## Do we allow exports?
+sub allows_export {
+  my $self = shift;
+  return $self->{export_ok};
+}
+
+## Do we require exports?
+sub requires_export {
+  my $self = shift;
+  return ($self->{export_ok} > 1);
 }
 
 sub engine {
@@ -143,7 +156,15 @@ sub import_namespace {
   }
   ## Only use export if you really know what you're doing.
   if ($export) {
-    $self->add_export($namespace);
+    if ($namespace->allows_export) {
+      $self->add_export($namespace);
+    }
+    else {
+      croak "Attempt to export to $nsid which does not allow exportation.";
+    }
+  }
+  elsif ($namespace->requires_export) {
+    croak "$nsid requires export.";
   }
 }
 
@@ -196,6 +217,12 @@ sub load_defs {
       if ($line =~ /^\s*import\s+\"(.*?)\"\s*(\:export)?/) {
         $self->import_namespace($1, $2);
         next;
+      }
+      if ($line =~ /^\s*no[\-\s_]export/) {
+        $self->{export_ok} = 0;
+      }
+      if ($line =~ /^\s*require[\-\s_]export/) {
+        $self->{export_ok} = 2;
       }
       ## Okay, plugins. Specify a name, and a class.
       ## NOTE: Plugins are NOT imported with the import statement.
