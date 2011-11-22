@@ -87,6 +87,9 @@ sub _get_attrib {
     if (exists $object->{$attrib}) {
       return $object->{$attrib};
     }
+    elsif ($attrib eq 'count') {
+      return scalar keys %{$object};
+    }
     elsif (exists $object->{DEFAULT}) {
       return $object->{DEFAULT};
     }

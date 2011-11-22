@@ -47,8 +47,11 @@ Should print the following text:
   Hello World, how are you?
   3 users said hi:
     * Bob: #1 user
-    * Kevin: #1 user, #2 admin
     * Joe: #1 user, #2 tester -- Is a team leader.
+    * Kevin: #1 user, #2 admin
+
+If you are wondering why the names are in a different order, it's because
+in Perl, hashes return results unsorted. We're sorting the keys by name.
 
 That shows off a few features, but there's plenty more in the tests.
 

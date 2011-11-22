@@ -1,0 +1,13 @@
+testTemplate (name, users) {{
+Hello [[name]], how are you?
+[[users.count]] users said hi:
+[[users:userList(*name, *opts)]]
+}}
+
+userList (name, opts) {{
+  * [[name]]: [[opts.roles:userRoles(*role); sep=", "]] [[?opts.leader:Leader()]]
+}}
+
+userRoles (role) {{ #[[userRoles.number]] [[role]] }}
+
+Leader () {{ -- Is a team leader. }}
