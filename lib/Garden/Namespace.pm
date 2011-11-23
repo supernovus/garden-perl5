@@ -1,4 +1,15 @@
-## Represents a template namespace. Typically the contents of a file.
+=head1 NAME
+
+Garden::Namespace - A collection of templates in a single file/namespace.
+
+=head1 DESCRIPTION
+
+This class is used internally. There is no direct documentation for it,
+as it is not a part of the public API. Read the Garden Spec instead,
+as all user-level interaction with this class is done using commands
+in template/namespace files.
+
+=cut
 
 package Garden::Namespace;
 

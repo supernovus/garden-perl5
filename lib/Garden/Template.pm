@@ -1,4 +1,21 @@
-## Represents a single template, regardless of file/namespace, etc.
+=head1 NAME
+
+Garden::Template - A Template
+
+=head1 DESCRIPTION
+
+The object representing a template itself.
+
+=head1 USAGE
+
+You don't construct this object manually, instead, you use the get()
+method in the Garden class. It will return a Template object that you
+can use.
+
+  my $template = $garden->get('myTemplate');
+  $template->render(name=>"world");
+
+=cut
 
 package Garden::Template;
 
@@ -23,9 +40,28 @@ sub new {
   return bless \%self, $class;
 }
 
+=head1 PUBLIC METHODS
+
+=over 1
+
+=item name
+
+Returns the template name.
+
+=cut
+
 sub name {
   return $_[0]->{name};
 }
+
+=item namespace
+
+Returns the Namespace object. This is not typically recommended
+for application use, and is more for internal use. In the future I may
+fully document the Namespace object, in which case extending its functionality
+will be possible in your application. At this time, that's not recommended.
+
+=cut
 
 sub namespace {
   return $_[0]->{namespace};
@@ -35,6 +71,12 @@ sub set_template {
   my ($self, $text) = @_;
   $self->{template} = $text;
 }
+
+=item signature
+
+Returns the signature for this template.
+
+=cut
 
 sub signature {
   return $_[0]->{signature};
@@ -171,9 +213,24 @@ sub _source_has {
   }
 }
 
-## Render the template using the given data.
-## Can take either a Hash reference, or named arguments.
-## It can't mix them, sorry, use one or the other.
+=item render(...)
+
+Render the template using the specified data.
+The data can be specified as a hash reference:
+
+  $template->render($hashref);
+
+or you can pass named parameters:
+
+  $template->render(name=>"Bob", roles=>['user','admin']);
+
+It's up to you. You cannot mix and match the two styles, you can only
+use one or the other.
+
+=cut
+
+## We're not putting the $local hashref into the public API as it's
+## used internally, and not meant for public consumption.
 sub render {
   my $self = shift;
   my $data;
@@ -442,6 +499,10 @@ sub _callTemplate {
   my $template = $self->namespace->get($name);
   return $template->render(\%call, $local);
 }
+
+=back
+
+=cut
 
 ## End of class
 1;

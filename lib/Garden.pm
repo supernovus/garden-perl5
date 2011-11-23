@@ -122,9 +122,28 @@ sub new {
   return bless \%self, $class;
 }
 
+=back
+
+=head1 PUBLIC METHODS
+
+=over 1
+
+=item syntax
+
+Returns the Hash reference representing the top-level syntax settings.
+
+=cut
+
 sub syntax {
   return $_[0]->{syntax};
 }
+
+=item paths
+
+Returns an array of paths. If passed 1, it builds a full copy
+of the paths before returning them.
+
+=cut
 
 sub paths {
   my ($self, $copy) = @_;
@@ -140,9 +159,22 @@ sub paths {
   return @paths;
 }
 
+=item plugins
+
+Returns the list of global plugins.
+
+=cut
+
 sub plugins {
   return $_[0]->{plugins};
 }
+
+=item addPath($path)
+
+Add a path to look for templates in. The path will be added to the
+top of the search list (so it will be looked in first.)
+
+=cut
 
 sub addPath {
   my $self = shift;
@@ -151,12 +183,29 @@ sub addPath {
   }
 }
 
+=item appendPath($path)
+
+Add a path to look for templates in. The path will be added to the
+bottom of the search list (so it will be looked in after existing paths.)
+
+=cut
+
 sub appendPath {
   my $self = shift;
   for my $path (@_) {
     push(@{$self->{paths}}, $path);
   }
 }
+
+=item addPlugin(name=>$plugin, ...)
+
+Adds a plugin (or plugins) that will be made available to all templates.
+The name is what the template will call the plugin via.
+
+The $plugin part can either be an object, a class name, or path to a
+Perl file. addPlugin will figure out how to handle it.
+
+=cut
 
 sub addPlugin {
   my ($self, %plugins) = @_;
@@ -187,7 +236,14 @@ sub load_namespace_file {
   return $namespace;
 }
 
-## Get a template.
+=item get($name)
+
+Get a template. Pass it the name of the template you are looking for,
+and it will find it and return it.
+
+=cut
+
+## We don't document the paths option, as it's not a part of the public API.
 sub get {
   my ($self, $name, %opts) = @_;
   my @paths;
@@ -248,9 +304,7 @@ sub get {
   croak "Template '$name' was not found, cannot continue.";
 }
 
-## Get a namespace. Yeah, it duplicates a bunch of stuff above.
-## I'll probably refactor this at some point, right now I just
-## want a working version.
+## Get a namespace. Not a public API call, this is used by Namespace.
 sub get_namespace {
   my ($self, $name, %opts) = @_;
   my @paths;
@@ -274,6 +328,36 @@ sub get_namespace {
   }
   croak "Namespace '$name' was not found, cannot continue.";
 }
+
+=back
+
+=head1 DEPENDENCIES
+
+=over 1
+
+=item Modern::Perl
+
+All of the libraries use Modern::Perl to enforce some sane defaults.
+
+=item Test::More
+
+Used for testing.
+
+=item Test::Exception
+
+Used for testing.
+
+=back
+
+=head1 AUTHOR
+
+Timothy Totten <https://github.com/supernovus/>
+
+=head1 LICENSE
+
+Artistic License 2.0
+
+=cut
 
 ## End of class.
 1;
