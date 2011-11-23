@@ -7,7 +7,7 @@ use Carp;
 
 use Garden::Repeat;
 
-#use Huri::Debug show => ['apply'];
+#use Huri::Debug show => ['callwtf'];
 
 sub new {
   my ($class, %opts) = @_;
@@ -94,7 +94,7 @@ sub _get_attrib {
       return $object->{DEFAULT};
     }
     else {
-      croak "No '$attrib' member in Hash.";
+      return '';
     }
   }
   elsif ($type eq 'ARRAY') {
@@ -110,7 +110,7 @@ sub _get_attrib {
         return $object->[$last];
       }
       default {
-        croak "Array method '$attrib' is not defined.";
+        return '';
       }
     }
   }
@@ -125,7 +125,7 @@ sub _get_attrib {
       return $object->DEFAULT($attrib);
     }
     else {
-      croak "No '$attrib' method in Object.";
+      return '';
     }
   }
 }
@@ -271,8 +271,8 @@ sub _parse_condition {
   my $regex = $self->regex;
   my $nested  = $regex->{nested};
   my $attribs = $regex->{attribs};
-  my $data  = $searches->[0];
-  my $local = $searches->[2];
+  my $data  = $searches->[0]->{data};
+  my $local = $searches->[2]->{data};
   my $c = 0;  ## Current condition.
   for my $cond (@conditions) {
     my $true = 1;
@@ -366,12 +366,38 @@ sub _apply {
 
 sub _err_unknown_var {
   my ($self, $var) = @_;
-  croak $self->name . "attempted to pass unknown variable '$var'.";
+  croak $self->name . " attempted to pass unknown variable '$var'.";
+}
+
+sub _err_invalid_var {
+  my ($self, $var) = @_;
+  croak $self->name . " referenced invalid variable '$var'.";
+}
+
+## Find a var, if we can't find it, bail.
+sub _search {
+  my ($self, $search, $find) = @_;
+  for my $source (@{$search}) {
+    if (exists $source->{$find}) {
+      return $source->{$find};
+    }
+  }
+  $self->_err_unknown_var($find);
 }
 
 ## Call a template (internal method.)
 sub _callTemplate {
   my ($self, $name, $sigtext, $data, $local, $recurse) = @_;
+  ##[callTemp]= $data, $local
+  my $search = [
+    $data,
+    $self->namespace->dicts,
+    $local,
+  ];
+  my $regex = $self->regex;
+  my $nested  = $regex->{nested};
+  my $attribs = $regex->{attribs};
+
   my $positional = $self->namespace->get_syntax('positional');
   my @signature = split(/\s*[;,]+\s*/, $sigtext);
   my %call; ## populate with the call parameters.
@@ -381,16 +407,17 @@ sub _callTemplate {
     if ($sig =~ /=/) {
       my ($tvar, $svar) = split(/\s*=\s*/, $sig);
       my $value;
-      if ($svar =~ /(\w+)\((.*?)\)/) {
+      if ($svar =~ /^ $nested $/msx) {
         $value = $self->_callTemplate($1, $2, $data, $local, $recurse);
       }
+      elsif ($svar =~ /^ (\w+) $attribs $/msx) {
+        $value = $self->_search($search, $1); ## Find the main one.
+        if (defined $2) {
+          $value = _get_attribs($value, $2);
+        }
+      }
       else {
-        if (exists $data->{$svar}) {
-          $value = $data->{$svar};
-        }
-        else {
-          $self->_err_unknown_var($svar);
-        }
+        $self->_err_invalid_var($svar);
       }
       $call{$tvar} = $value;
     }
@@ -399,11 +426,16 @@ sub _callTemplate {
         $sig =~ s/^\Q$positional\E//; ## Strip the leading *.
         $call{$sig} = $recurse->[$rec++];
       }
-      elsif (exists $data->{$sig}) {
-        $call{$sig} = $data->{$sig};
+      elsif ($sig =~ /^ (\w+) $attribs $/msx) {
+        ##[callwtf]= $data $sig
+        my $value = $self->_search($search, $1);
+        if (defined $2) {
+          $value = _get_attribs($value, $2);
+        }
+        $call{$sig} = $value;
       }
       else {
-        $self->_err_unknown_var($sig);
+        $self->_err_invalid_var($sig);
       }
     }
   }
