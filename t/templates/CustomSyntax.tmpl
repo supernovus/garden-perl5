@@ -1,0 +1,28 @@
+delimiters "$", "$"
+block "{", "}"
+dictblock "[", "]"
+comment "<--", "-->"
+condition "if ", "|"
+alias "@", "::="
+positional "&"
+apply "->"
+negate "-"
+
+my [
+  "name" : "World"
+]
+
+CustomSyntax (title, users) {
+---
+$title$ $my.name$
+$users -> userList(&user)$
+}
+
+userList (user) {
+$@name::=user.name$
+$@admin::=user.admin$
+  * $name$ $if -admin->isUser()|isAdmin()$
+}
+
+isUser ()  { (user)  }
+isAdmin () { (admin) }

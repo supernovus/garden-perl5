@@ -352,8 +352,8 @@ sub render {
   my $searches = \@search;
 
   ## Look for aliases. Aliases should be on their own line.
-  $template =~ s/\Q$start_ex\E \s* \Q$alias\E (\w+) \Q$asep\E (\w+) $attribs 
-    \Q$end_ex\E \s* /$self->_set_alias($1, $2, $3, $fsearch, $local)/gmsex;
+  $template =~ s/\Q$start_ex\E \s* \Q$alias\E (\w+) \s* \Q$asep\E \s* (\w+) $attribs 
+    \Q$end_ex\E \s*?\n? /$self->_set_alias($1, $2, $3, $fsearch, $local)/gmsex;
 
   ## Let's look for conditional blocks. 
   $template =~ s/\Q$start_ex\E \s* \Q$cond\E (.*?) \Q$apply\E (.*?) 

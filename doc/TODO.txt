@@ -11,9 +11,7 @@
 
 = Things to do for version 1.0 =
 
-***  Tests for 'import' statement.
-***  Tests for 'include' statement.
-**   Tests for syntax overrides.
+***  More testing and fixing any bugs found.
 
 = Things to do for version 2.0 =
 

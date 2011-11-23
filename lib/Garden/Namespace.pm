@@ -152,7 +152,18 @@ sub plugins {
 ## This is used by the "include" statement. That's all.
 sub add_path {
   my ($self, $path) = @_;
-  unshift(@{$self->{paths}}, $path);
+  if (-d $path) {
+    unshift(@{$self->{paths}}, $path);
+  }
+  else {
+    for my $curpath (@{$self->{paths}}) {
+      my $newpath = $curpath . '/' . $path;
+      if (-d $newpath) {
+        unshift(@{$self->{paths}}, $newpath);
+        last;
+      }
+    }
+  }
 }
 
 ## Import the templates and dicts from another namespace.
