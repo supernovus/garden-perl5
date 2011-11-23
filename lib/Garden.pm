@@ -45,7 +45,7 @@ use Garden::Namespace;
 ## committed to the library in this stable version. So 1.11 would indicate
 ## 11 updates to the first major version.
 
-our $VERSION = 0.13;
+our $VERSION = 0.14;
 
 #use Huri::Debug show => ['all'];
 
@@ -205,13 +205,25 @@ Perl file. addPlugin will figure out how to handle it.
 
 =cut
 
+sub load_plugin {
+  my ($self, $plugin) = @_;
+  if ($plugin !~ /\.p[ml]/) {
+    $plugin .= '.pm';
+  }
+  $plugin =~ s|::|/|g;
+  if (eval { require $plugin; 1; }) {
+    return 1;
+  }
+  return 0;
+}
+
 sub addPlugin {
   my ($self, %plugins) = @_;
   for my $plug (keys %plugins) {
     next if exists $self->{plugins}->{$plug}; ## No redefining.
     my $plugin = $plugins{$plug};
     if (! ref $plugin) {
-      require $plugin;
+      $self->load_plugin($plugin);
       $plugin = $plugin->new(engine=>$self);
     }
     $self->{plugins}->{$plug} = $plugin;

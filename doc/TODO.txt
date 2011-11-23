@@ -14,10 +14,15 @@
 ***  Tests for 'import' statement.
 ***  Tests for 'include' statement.
 **   Tests for syntax overrides.
-*    Plugins, for extra functionality.
 
-= Potential future ideas (2.x or later.) =
+= Things to do for version 2.0 =
 
-*    Anonymous templates.
-*    Multiple dispatch based on signature?
+***  Rewrite the Template parser to use Regexp::Grammers.
+     Currently you can't do things like [[obj.method(another.property)]]
+     as the split on attribs turns that into ["method(another",property]
+     which is certainly not correct. The work around at the time being
+     is to use aliases if you need to pass things in method calls.
+     Using grammars will give us a lot more flexibility.
+***  Anonymous templates. These will be easier with Regexp::Grammars.
+***  Multiple dispatch based on signature.
 

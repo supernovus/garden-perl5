@@ -128,22 +128,24 @@ sub add_plugin {
     warn "Attempt to redefine '$plugid' plugin.";
     return;
   }
-  require $plugclass;
+  $self->engine->load_plugin($plugclass);
   my $plugin = $plugclass->new(namespace=>$self, engine=>$self->engine);
   $self->{plugins}->{$plugid} = $plugin;
 }
 
-## Get a plugin (local plugins override global ones.)
-sub get_plugin {
-  my ($self, $plugid) = @_;
-  if (exists $self->{plugins}->{$plugid}) {
-    return $self->{plugins}->{$plugid};
+## Return the list of plugins
+sub plugins {
+  my $self = shift;
+  my %plugins;
+  my %localplug  = %{$self->{plugins}};
+  my %globalplug = %{$self->engine->plugins};
+  for my $plug (keys %globalplug) {
+    $plugins{$plug} = $globalplug{$plug};
   }
-  my $global_plugins = $self->engine->plugins;
-  if (exists $global_plugins->{$plugid}) {
-    return $global_plugins->{$plugid};
+  for my $plug (keys %localplug) {
+    $plugins{$plug} = $localplug{$plug};
   }
-  croak "Invalid plugin '$plugid' requested.";
+  return \%plugins;
 }
 
 ## Add a path. No, there's no append path method here.

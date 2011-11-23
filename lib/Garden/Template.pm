@@ -337,12 +337,16 @@ sub render {
     { ## 2 - Namespace dictionaries
       data => $self->namespace->dicts,
     },
+    { ## 3 - Plugins
+      data => $self->namespace->plugins,
+    },
   );
 
   my $fsearch = [
     $local,
     $data,
-    $search[1]->{data},
+    $search[2]->{data},
+    $search[3]->{data},
   ];
 
   my $searches = \@search;
@@ -418,6 +422,7 @@ sub _parse_condition {
     $local,
     $data,
     $searches->[2]->{data},
+    $searches->[3]->{data},
   ];
   my $c = 0;  ## Current condition.
   for my $cond (@conditions) {
@@ -523,6 +528,7 @@ sub _callTemplate {
     $local,
     $data,
     $self->namespace->dicts,
+    $self->namespace->plugins,
   ];
   my $regex = $self->regex;
   my $nested  = $regex->{nested};
