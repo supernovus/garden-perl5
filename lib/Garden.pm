@@ -45,7 +45,7 @@ use Garden::Namespace;
 ## committed to the library in this stable version. So 1.11 would indicate
 ## 11 updates to the first major version.
 
-our $VERSION = 0.12;
+our $VERSION = 0.13;
 
 #use Huri::Debug show => ['all'];
 

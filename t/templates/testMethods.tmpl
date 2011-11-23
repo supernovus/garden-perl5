@@ -12,3 +12,13 @@ Default (object, params) {{
 The output is: [[object.this(name,first=title)]]
 }}
 
+Repeat (array) {{ [[array:repeatItem(*item)]] }}
+
+repeatItem (item) {{
+[[?repeatItem.lt(3);repeatItem.gt(5):littleNumber();hugeNumber();bigNumber();]] [[item]]
+}}
+
+littleNumber () {{ - }}
+bigNumber    () {{ + }}
+hugeNumber   () {{ * }}
+

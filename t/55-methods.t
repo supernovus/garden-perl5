@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests=>4;
+use Test::More tests=>6;
 
 BEGIN { 
   push @INC, './lib';
@@ -32,4 +32,21 @@ my $params = {
 is $test->render(object=>$methods, params=>$params),
    "The output is: What is this? With Bob, first, CEO\n",
    'render() with a default method call.';
+
+$test = $garden->get('testMethods/Repeat');
+ok ref $test eq 'Garden::Template', 'get() testMethods/Repeat';
+
+my $array = [
+  'first',
+  'second',
+  'third',
+  'fourth',
+  'fifth',
+  'sixth',
+  'seventh',
+];
+
+is $test->render(array=>$array),
+   "- first\n- second\n+ third\n+ fourth\n+ fifth\n* sixth\n* seventh\n",
+   'render() using Repeat methods that take parameters.';
 

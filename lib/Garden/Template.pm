@@ -124,7 +124,7 @@ sub _getopt {
   return $default;
 }
 
-## Find a var, if we can't find it, bail.
+## Find a var, if we can't find it, return the name.
 sub _search {
   my ($search, $find) = @_;
   for my $source (@{$search}) {
@@ -133,7 +133,7 @@ sub _search {
       return $source->{$find};
     }
   }
-  confess "Unknown variable: $find";
+  return $find;
 }
 
 ## Find an attrib. Supports Hashes and method calls with no parameters.
