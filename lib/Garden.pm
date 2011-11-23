@@ -45,11 +45,11 @@ use Garden::Namespace;
 ## committed to the library in this stable version. So 1.11 would indicate
 ## 11 updates to the first major version.
 
-our $VERSION = 0.10;
+our $VERSION = 0.11;
 
 ## Release date in ISO format.
 
-our $RELEASE = "2011-11-22T13:05:00-0800";
+our $RELEASE = "2011-11-23T00:10:00-0800";
 
 #use Huri::Debug show => ['all'];
 
