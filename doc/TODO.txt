@@ -13,7 +13,6 @@
 
 ***  Tests for 'import' statement.
 ***  Tests for 'include' statement.
-***  Method calls on variable attributes.
 **   Tests for syntax overrides.
 *    Plugins, for extra functionality.
 

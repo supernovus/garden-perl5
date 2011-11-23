@@ -24,7 +24,7 @@ use Carp;
 
 use Garden::Repeat;
 
-#use Huri::Debug show => ['callwtf'];
+#use Huri::Debug show => ['methods'];
 
 sub new {
   my ($class, %opts) = @_;
@@ -84,10 +84,14 @@ sub signature {
 
 ## Shared regexes.
 sub regex {
+  my $self = shift;
+  my $nested  = '\s* ( \(? \w+ \)? ) \((.*?)\) \s*';
+  my $opts    = '(?: \s* ; \s* (.*?) )?';
+  my $attribs = '(?: ((?: \. \(? \w+ \)? (?:\(.*?\))? )+))?'; 
   return {
-    nested   => '\s* (\w+) \((.*?)\) \s*',
-    opts     => '(?: \s* ; \s* (.*?) )?',
-    attribs  => '(?: ((?: \. \w+)+))?',
+    nested   => $nested,
+    opts     => $opts,
+    attribs  => $attribs,
   };
 }
 
@@ -120,11 +124,35 @@ sub _getopt {
   return $default;
 }
 
+## Find a var, if we can't find it, bail.
+sub _search {
+  my ($search, $find) = @_;
+  for my $source (@{$search}) {
+    ##[search]= $source $find
+    if (exists $source->{$find}) {
+      return $source->{$find};
+    }
+  }
+  confess "Unknown variable: $find";
+}
+
 ## Find an attrib. Supports Hashes and method calls with no parameters.
 sub _get_attrib {
-  my ($object, $attrib) = @_;
+  ##[methods] In get attrib
+  my ($self, $object, $attrib, $search) = @_;
   my $type = ref $object;
   if (! $type) { return $object; } ## Should we fail instead?
+  my $methodcall;
+  my $method = '(?:\((.*?)\))';
+  my $attribs = $self->regex->{attribs};
+  if ($attrib =~ /^ \( (\w+) \) $method? /x) {
+    $attrib = _search($search, $1);
+    $methodcall = $2;
+  }
+  elsif ($attrib =~ /^ (\w+) $method /x) {
+    $attrib = $1;
+    $methodcall = $2;
+  }
   if ($type eq 'HASH') {
     if (exists $object->{$attrib}) {
       return $object->{$attrib};
@@ -160,11 +188,45 @@ sub _get_attrib {
    return $object->($attrib);
   }
   else {
+    my @params;
+    if ($methodcall) {
+      my @signature = split(/\s*[;,]+\s*/, $methodcall);
+      ##[methods]= @signature
+      for my $sig (@signature) {
+        ##[methods]= $sig
+        my $value;
+        if ($sig =~ /=/) {
+          ## We currently only support basic attribs in here.
+          ## Do we really need more than that? Just use an
+          ## alias if you really want it.
+          my ($sname, $sval) = split(/\s*=\s*/, $sig);
+          if ($sval =~ /^ (\w+) $attribs /x) {
+            $value = _search($search, $1);
+            if ($2) {
+              $value = $self->_get_attribs($value, $2, $search);
+            }
+          }
+          else {
+            $self->_err_invalid_var($sval);
+          }
+          push(@params, $sname, $value);
+        }
+        elsif ($sig =~ /^ (\w+) $attribs /x) {
+          ##[methods]= $1
+          $value = _search($search, $1);
+          if ($2) {
+            $value = $self->_get_attribs($value, $2, $search);
+          }
+          push(@params, $value);
+        }
+      }
+    }
     if ($object->can($attrib)) {
-      return $object->$attrib();
+      ##[methods]= @params
+      return $object->$attrib(@params);
     }
     elsif ($object->can('DEFAULT')) {
-      return $object->DEFAULT($attrib);
+      return $object->DEFAULT($attrib, @params);
     }
     else {
       return '';
@@ -174,14 +236,14 @@ sub _get_attrib {
 
 ## Parse attributes.
 sub _get_attribs {
-  my ($object, $attrstring) = @_;
+  my ($self, $object, $attrstring, $search) = @_;
   if (!defined $attrstring || $attrstring eq '') {
     return $object;
   }
   $attrstring =~ s/^\.//g; ## Strip leading dot.
   my @attrs = split(/\./, $attrstring);
   for my $attr (@attrs) {
-    $object = _get_attrib($object, $attr);
+    $object = $self->_get_attrib($object, $attr, $search);
   }
   return $object;
 }
@@ -249,6 +311,7 @@ sub render {
   my ($start_comment, $end_comment) = $self->namespace->get_syntax('comment');
   my ($start_ex, $end_ex) = $self->namespace->get_syntax('delimiters');
   my ($cond, $csep) = $self->namespace->get_syntax('condition');
+  my ($alias, $asep) = $self->namespace->get_syntax('alias');
   my $note   = $self->namespace->get_syntax('note');
   my $apply  = $self->namespace->get_syntax('apply');
 
@@ -263,21 +326,32 @@ sub render {
 
   ## TODO: Change how plugins work, and add them to the search.
   my @search = (
-    { ## 0 - Passed in data
+    { ## 0 - Local settings (repeat object, etc.)
+      data => $local,
+    },
+    { ## 1 - Passed in data
       find => $self->signature,
       data => $data,
       test => 1,
     },
-    { ## 1 - Namespace dictionaries
+    { ## 2 - Namespace dictionaries
       data => $self->namespace->dicts,
-    },
-    { ## 2 - Local settings (repeat object, etc.)
-      data => $local,
     },
   );
 
-  ## Let's look for conditional blocks.
+  my $fsearch = [
+    $local,
+    $data,
+    $search[1]->{data},
+  ];
+
   my $searches = \@search;
+
+  ## Look for aliases. Aliases should be on their own line.
+  $template =~ s/\Q$start_ex\E \s* \Q$alias\E (\w+) \Q$asep\E (\w+) $attribs 
+    \Q$end_ex\E \s* /$self->_set_alias($1, $2, $3, $fsearch, $local)/gmsex;
+
+  ## Let's look for conditional blocks. 
   $template =~ s/\Q$start_ex\E \s* \Q$cond\E (.*?) \Q$apply\E (.*?) 
     \Q$end_ex\E/$self->_parse_condition($csep, $1, $2, $searches)/gmsex;
 
@@ -290,12 +364,12 @@ sub render {
       ## application
       $template =~ s/\Q$start_ex\E \s* $var $attribs \s* \Q$apply\E
         $nested $opts \Q$end_ex\E/
-        $self->_apply(_get_attribs($value, $1), $2, $3, $data, 
+        $self->_apply($self->_get_attribs($value, $1, $fsearch), $2, $3, $data, 
         _getopts($4), $local)/gmsex;
   
       ## variable
       $template =~ s/\Q$start_ex\E \s* $var $attribs $opts \Q$end_ex\E/
-        $self->_expand(_get_attribs($value, $1), $data, 
+        $self->_expand($self->_get_attribs($value, $1, $fsearch), $data, 
         _getopts($2), $local)/gmsex;
   
     }
@@ -307,6 +381,16 @@ sub render {
     $self->_callTemplate($1, $2, $data, $local)/gmsex;
   
   return $template;
+}
+
+sub _set_alias {
+  my ($self, $alias, $var, $attribs, $search, $local) = @_;
+  my $value = _search($search, $var);
+  if ($attribs) {
+    $value = $self->_get_attribs($value, $attribs, $search);
+  }
+  $local->{$alias} = $value;
+  return ''; ## Aliases don't return anything themselves.
 }
 
 sub _get_tempdef {
@@ -328,8 +412,13 @@ sub _parse_condition {
   my $regex = $self->regex;
   my $nested  = $regex->{nested};
   my $attribs = $regex->{attribs};
-  my $data  = $searches->[0]->{data};
-  my $local = $searches->[2]->{data};
+  my $data  = $searches->[1]->{data};
+  my $local = $searches->[0]->{data};
+  my $search = [
+    $local,
+    $data,
+    $searches->[2]->{data},
+  ];
   my $c = 0;  ## Current condition.
   for my $cond (@conditions) {
     my $true = 1;
@@ -354,7 +443,7 @@ sub _parse_condition {
       $c++;
       next;
     }
-    $value = _get_attribs($value, $attrs);
+    $value = $self->_get_attribs($value, $attrs, $search);
     if (($true && $value)||(!$true && !$value)) {
       my ($tempname, $tempsig) = _get_tempdef($c, \@actions, $nested);
       return $self->_callTemplate($tempname, $tempsig, $data, $local);
@@ -421,25 +510,9 @@ sub _apply {
   return join($join, @values);
 }
 
-sub _err_unknown_var {
-  my ($self, $var) = @_;
-  croak $self->name . " attempted to pass unknown variable '$var'.";
-}
-
 sub _err_invalid_var {
   my ($self, $var) = @_;
   croak $self->name . " referenced invalid variable '$var'.";
-}
-
-## Find a var, if we can't find it, bail.
-sub _search {
-  my ($self, $search, $find) = @_;
-  for my $source (@{$search}) {
-    if (exists $source->{$find}) {
-      return $source->{$find};
-    }
-  }
-  $self->_err_unknown_var($find);
 }
 
 ## Call a template (internal method.)
@@ -447,9 +520,9 @@ sub _callTemplate {
   my ($self, $name, $sigtext, $data, $local, $recurse) = @_;
   ##[callTemp]= $data, $local
   my $search = [
+    $local,
     $data,
     $self->namespace->dicts,
-    $local,
   ];
   my $regex = $self->regex;
   my $nested  = $regex->{nested};
@@ -468,9 +541,9 @@ sub _callTemplate {
         $value = $self->_callTemplate($1, $2, $data, $local, $recurse);
       }
       elsif ($svar =~ /^ (\w+) $attribs $/msx) {
-        $value = $self->_search($search, $1); ## Find the main one.
+        $value = _search($search, $1); ## Find the main one.
         if (defined $2) {
-          $value = _get_attribs($value, $2);
+          $value = $self->_get_attribs($value, $2, $search);
         }
       }
       else {
@@ -485,15 +558,21 @@ sub _callTemplate {
       }
       elsif ($sig =~ /^ (\w+) $attribs $/msx) {
         ##[callwtf]= $data $sig
-        my $value = $self->_search($search, $1);
+        my $value = _search($search, $1);
         if (defined $2) {
-          $value = _get_attribs($value, $2);
+          $value = $self->_get_attribs($value, $2, $search);
         }
         $call{$sig} = $value;
       }
       else {
         $self->_err_invalid_var($sig);
       }
+    }
+  }
+  if ($name =~ /^ \( (\w+) $attribs \) /x) {
+    $name = _search($search, $1);
+    if ($2) {
+      $name = $self->_get_attribs($name, $2, $search);
     }
   }
   my $template = $self->namespace->get($name);

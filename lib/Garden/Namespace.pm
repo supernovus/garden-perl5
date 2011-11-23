@@ -203,22 +203,27 @@ sub load_defs {
   my $in_block = 0; ## Set to 1 for Template blocks, and 2 for Dict blocks.
   my $block_text = '';
   my $current_block;
-  my $syntax = $self->get_syntax;
+  my $overrides = $self->engine->syntax; ## Used if overriding syntax.
+  my $syntax; ## We'll set this below. Once statements are parsed, this
+              ## won't change anymore.
   LINES: for my $line (@lines) {
     ## Okay, first, let's see if we're parsing statements.
     if ($in_statements) {
-      for my $syntwo ('delimiters','block','dictblock','comment') {
-        if ($line =~ /^\s*$syntwo\s+\"(.*?)\",\s*\"(.*?)\"/) {
-          my $value = [ $1, $2 ];
-          $self->set_syntax($syntwo, $value);
-          next LINES;
+      for my $override (keys %{$overrides}) {
+        if (ref $overrides->{$override} eq 'ARRAY') {
+          ## Two part syntax.
+          if ($line =~ /^ \s* $override \s+ \"(.*?)\" , \s* \"(.*?)\" /x) {
+            my $value = [ $1, $2 ];
+            $self->set_syntax($override, $value);
+            next LINES;
+          }
         }
-      }
-      for my $synone ('note', 'positional', 'sysvar', 'dictvar', 'apply') {
-        if ($line =~ /^\s*$synone\s+"(.*?)\"/) {
-          my $value = $1;
-          $self->set_syntax($synone, $value);
-          next LINES;
+        else {
+          if ($line =~ /^ \s* $override \s+ "(.*?)\" /x) {
+            my $value = $1;
+            $self->set_syntax($override, $value);
+            next LINES;
+          }
         }
       }
       if ($line =~ /^\s*include\s+\"(.*?)\"/) {
@@ -274,6 +279,9 @@ sub load_defs {
       }
     }
     else {
+      if ($in_statements) {
+        $syntax = $self->get_syntax;
+      }
       my $start_template = $syntax->{block}[0];
       my $end_template   = $syntax->{block}[1];
       my $start_dict     = $syntax->{dictblock}[0];
@@ -290,6 +298,7 @@ sub load_defs {
         );
         $template->set_template($3);
         $self->add_template($1, $template);
+        $in_statements = 0;
         next;
       }
       elsif ($line =~ /^ $blockname $signature \Q$start_template\E/x) {
@@ -302,12 +311,14 @@ sub load_defs {
         );
         $self->add_template($1, $current_block);
         $in_block = 1;
+        $in_statements = 0;
         next;
       }
       elsif ($line =~ /^ $blockname \Q$start_dict\E/x) {
         $current_block = {};
         $self->add_dict($1, $current_block);
         $in_block = 2;
+        $in_statements = 0;
         next;
       }
     }

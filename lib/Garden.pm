@@ -45,11 +45,7 @@ use Garden::Namespace;
 ## committed to the library in this stable version. So 1.11 would indicate
 ## 11 updates to the first major version.
 
-our $VERSION = 0.11;
-
-## Release date in ISO format.
-
-our $RELEASE = "2011-11-23T00:10:00-0800";
+our $VERSION = 0.12;
 
 #use Huri::Debug show => ['all'];
 
@@ -77,6 +73,7 @@ Create a new Garden object. This can take several optional parameters:
   dictblock    Delimiters for a dictionary block                 ['{[', ']}']
   comment      Delimiters for a comment block                    ['/*', '*/']
   condition    Start and separator for conditional statements    [ '?', ';' ]
+  alias        Start and separator for alias statements          ['::', '=' ]
   note         Prefix for a here-to-newline comment              '//'
   positional   Prefix for positional parameters                  '*'
   apply        Symbol to apply a template                        ':'
@@ -97,7 +94,8 @@ sub new {
       block      => ['{{', '}}'],
       dictblock  => ['{[', ']}'],
       comment    => ['/*', '*/'],
-      condition  => ['?',';'],
+      condition  => [ '?', ';' ],
+      alias      => ['::', '=' ],
       note       => '//',
       positional => '*',
       apply      => ':',
