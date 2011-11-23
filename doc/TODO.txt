@@ -13,15 +13,12 @@
 
 ***  Tests for 'import' statement.
 ***  Tests for 'include' statement.
+***  Method calls on variable attributes.
 **   POD documentation for all libraries.
 **   Tests for syntax overrides.
+*    Plugins, for extra functionality.
 
-= Things to do for a subsequent 1.x version =
-
-**   Method calls on variable attributes.
-**   Plugins, for extra functionality.
-
-= Potential future ideas =
+= Potential future ideas (2.x or later.) =
 
 *    Anonymous templates.
 *    Multiple dispatch based on signature?
