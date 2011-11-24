@@ -23,6 +23,7 @@ use Modern::Perl;
 use Carp;
 
 use Garden::Repeat;
+use Garden::Context;
 
 #use Huri::Debug show => ['methods'];
 
@@ -124,29 +125,17 @@ sub _getopt {
   return $default;
 }
 
-## Find a var, if we can't find it, return the name.
-sub _search {
-  my ($search, $find) = @_;
-  for my $source (@{$search}) {
-    ##[search]= $source $find
-    if (exists $source->{$find}) {
-      return $source->{$find};
-    }
-  }
-  return $find;
-}
-
 ## Find an attrib. Supports Hashes and method calls with no parameters.
 sub _get_attrib {
   ##[methods] In get attrib
-  my ($self, $object, $attrib, $search) = @_;
+  my ($self, $object, $attrib, $context) = @_;
   my $type = ref $object;
   if (! $type) { return $object; } ## Should we fail instead?
   my $methodcall;
   my $method = '(?:\((.*?)\))';
   my $attribs = $self->regex->{attribs};
   if ($attrib =~ /^ \( (\w+) \) $method? /x) {
-    $attrib = _search($search, $1);
+    $attrib = $context->find($1);
     $methodcall = $2;
   }
   elsif ($attrib =~ /^ (\w+) $method /x) {
@@ -201,9 +190,9 @@ sub _get_attrib {
           ## alias if you really want it.
           my ($sname, $sval) = split(/\s*=\s*/, $sig);
           if ($sval =~ /^ (\w+) $attribs /x) {
-            $value = _search($search, $1);
+            $value = $context->find($1);
             if ($2) {
-              $value = $self->_get_attribs($value, $2, $search);
+              $value = $self->_get_attribs($value, $2, $context);
             }
           }
           else {
@@ -213,9 +202,9 @@ sub _get_attrib {
         }
         elsif ($sig =~ /^ (\w+) $attribs /x) {
           ##[methods]= $1
-          $value = _search($search, $1);
+          $value = $context->find($1);
           if ($2) {
-            $value = $self->_get_attribs($value, $2, $search);
+            $value = $self->_get_attribs($value, $2, $context);
           }
           push(@params, $value);
         }
@@ -236,43 +225,16 @@ sub _get_attrib {
 
 ## Parse attributes.
 sub _get_attribs {
-  my ($self, $object, $attrstring, $search) = @_;
+  my ($self, $object, $attrstring, $context) = @_;
   if (!defined $attrstring || $attrstring eq '') {
     return $object;
   }
   $attrstring =~ s/^\.//g; ## Strip leading dot.
   my @attrs = split(/\./, $attrstring);
   for my $attr (@attrs) {
-    $object = $self->_get_attrib($object, $attr, $search);
+    $object = $self->_get_attrib($object, $attr, $context);
   }
   return $object;
-}
-
-## Get the params from a search def
-sub _get_search {
-  my $search = shift;
-  my $source = $search->{data};
-  my $test   = 0;
-  my $find;
-  if (exists $search->{find}) {
-    $find = $search->{find};
-  }
-  else {
-    my @keys = keys %{$source};
-    $find = \@keys;
-  }
-  if (exists $search->{test}) {
-    $test = $search->{test};
-  }
-  return ($source, $test, $find);
-}
-
-## See if a source has the appropriate params
-sub _source_has {
-  my ($self, $source, $var, $test) = @_;
-  if ($test && ! exists $source->{$var}) {
-    croak $self->name . " requires '$var' parameter.";
-  }
 }
 
 =item render(...)
@@ -302,12 +264,21 @@ sub render {
     if (ref $_[0] eq 'HASH') {
       $local = shift;
     }
+    else {
+      $local = {};
+    }
   }
   else {
     my %hash = @_;
     $data = \%hash;
     $local = {};
   }
+  my $context = Garden::Context->new($self->name);
+  $context->addSource($local);
+  $context->addSource($data, $self->signature, 1);
+  $context->addSource($self->namespace->dicts);
+  $context->addSource($self->namespace->plugins);
+
   my ($start_comment, $end_comment) = $self->namespace->get_syntax('comment');
   my ($start_ex, $end_ex) = $self->namespace->get_syntax('delimiters');
   my ($cond, $csep) = $self->namespace->get_syntax('condition');
@@ -324,76 +295,46 @@ sub render {
   my $opts     = $regex->{opts};
   my $attribs  = $regex->{attribs};
 
-  ## TODO: Change how plugins work, and add them to the search.
-  my @search = (
-    { ## 0 - Local settings (repeat object, etc.)
-      data => $local,
-    },
-    { ## 1 - Passed in data
-      find => $self->signature,
-      data => $data,
-      test => 1,
-    },
-    { ## 2 - Namespace dictionaries
-      data => $self->namespace->dicts,
-    },
-    { ## 3 - Plugins
-      data => $self->namespace->plugins,
-    },
-  );
-
-  my $fsearch = [
-    $local,
-    $data,
-    $search[2]->{data},
-    $search[3]->{data},
-  ];
-
-  my $searches = \@search;
-
   ## Look for aliases. Aliases should be on their own line.
   $template =~ s/\Q$start_ex\E \s* \Q$alias\E (\w+) \s* \Q$asep\E \s* (\w+) $attribs 
-    \Q$end_ex\E \s*?\n? /$self->_set_alias($1, $2, $3, $fsearch, $local)/gmsex;
+    \Q$end_ex\E \s*?\n? /$self->_set_alias($1, $2, $3, $context)/gmsex;
 
   ## Let's look for conditional blocks. 
   $template =~ s/\Q$start_ex\E \s* \Q$cond\E (.*?) \Q$apply\E (.*?) 
-    \Q$end_ex\E/$self->_parse_condition($csep, $1, $2, $searches)/gmsex;
+    \Q$end_ex\E/$self->_parse_condition($csep, $1, $2, $context)/gmsex;
 
-  for my $search (@search) {
-    my ($source, $test, $find) = _get_search($search);
-    for my $var (@{$find}) {
-      $self->_source_has($source, $var, $test);
-      my $value = $source->{$var};
+  my %search = $context->known();
+  for my $var (keys %search) {
+    my $value = $context->get($var, $search{$var});
 
-      ## application
-      $template =~ s/\Q$start_ex\E \s* $var $attribs \s* \Q$apply\E
-        $nested $opts \Q$end_ex\E/
-        $self->_apply($self->_get_attribs($value, $1, $fsearch), $2, $3, $data, 
-        _getopts($4), $local)/gmsex;
+    ## application
+    $template =~ s/\Q$start_ex\E \s* $var $attribs \s* \Q$apply\E
+      $nested $opts \Q$end_ex\E/
+      $self->_apply($self->_get_attribs($value, $1, $context), $2, $3, 
+      _getopts($4), $context)/gmsex;
   
-      ## variable
-      $template =~ s/\Q$start_ex\E \s* $var $attribs $opts \Q$end_ex\E/
-        $self->_expand($self->_get_attribs($value, $1, $fsearch), $data, 
-        _getopts($2), $local)/gmsex;
+    ## variable
+    $template =~ s/\Q$start_ex\E \s* $var $attribs $opts \Q$end_ex\E/
+      $self->_expand($self->_get_attribs($value, $1, $context), 
+      _getopts($2), $context)/gmsex;
   
-    }
   }
 
   ## Now parse nested template calls.
   ### $1=Name, $2=Signature
   $template =~ s/\Q$start_ex\E $nested \Q$end_ex\E/
-    $self->_callTemplate($1, $2, $data, $local)/gmsex;
+    $self->_callTemplate($1, $2, $context)/gmsex;
   
   return $template;
 }
 
 sub _set_alias {
-  my ($self, $alias, $var, $attribs, $search, $local) = @_;
-  my $value = _search($search, $var);
+  my ($self, $alias, $var, $attribs, $context) = @_;
+  my $value = $context->find($var);
   if ($attribs) {
-    $value = $self->_get_attribs($value, $attribs, $search);
+    $value = $self->_get_attribs($value, $attribs, $context);
   }
-  $local->{$alias} = $value;
+  $context->addLocal($alias, $value);
   return ''; ## Aliases don't return anything themselves.
 }
 
@@ -409,21 +350,13 @@ sub _get_tempdef {
 }
 
 sub _parse_condition {
-  my ($self, $sep, $conditions, $actions, $searches) = @_;
+  my ($self, $sep, $conditions, $actions, $context) = @_;
   my @conditions = split(/\Q$sep\E/, $conditions);
   my @actions    = split(/\Q$sep\E/, $actions);
   my $negate = $self->namespace->get_syntax('negate');
   my $regex = $self->regex;
   my $nested  = $regex->{nested};
   my $attribs = $regex->{attribs};
-  my $data  = $searches->[1]->{data};
-  my $local = $searches->[0]->{data};
-  my $search = [
-    $local,
-    $data,
-    $searches->[2]->{data},
-    $searches->[3]->{data},
-  ];
   my $c = 0;  ## Current condition.
   for my $cond (@conditions) {
     my $true = 1;
@@ -436,29 +369,25 @@ sub _parse_condition {
     else {
       croak "Invalid condition: '$cond', cannot continue.";
     }
-    my $value;
-    for my $search (@{$searches}) {
-      my $source = $search->{data};
-      if (exists $source->{$varname}) {
-        $value = $source->{$varname};
-        last;
-      }
-    }
-    if (!defined $value) { ## Couldn't find anything, skip it.
+    my $value = $context->find($varname);
+    if (!defined $value || $value eq $varname) { 
+      ## Couldn't find anything, skip it.
       $c++;
       next;
     }
-    $value = $self->_get_attribs($value, $attrs, $search);
+    if ($attrs) {
+      $value = $self->_get_attribs($value, $attrs, $context);
+    }
     if (($true && $value)||(!$true && !$value)) {
       my ($tempname, $tempsig) = _get_tempdef($c, \@actions, $nested);
-      return $self->_callTemplate($tempname, $tempsig, $data, $local);
+      return $self->_callTemplate($tempname, $tempsig, $context);
     }
     $c++;
   }
   my $acount = scalar @actions;
   if ($c < $acount) {
     my ($tempname, $tempsig) = _get_tempdef($c, \@actions, $nested);
-    return $self->_callTemplate($tempname, $tempsig, $data, $local);
+    return $self->_callTemplate($tempname, $tempsig, $context);
   }
   else {
     return ''; ## Death to failed conditionals.
@@ -466,7 +395,7 @@ sub _parse_condition {
 }
 
 sub _expand {
-  my ($self, $value, $data, $opts, $local) = @_;
+  my ($self, $value, $opts, $context) = @_;
   my $join = _getopt(qr/^sep/, $opts, '');
   my $valtype = ref $value;
   if ($valtype eq 'ARRAY') {
@@ -479,24 +408,20 @@ sub _expand {
 }
 
 sub _apply {
-  my ($self, $value, $template, $params, $data, $opts, $local) = @_;
+  my ($self, $value, $template, $params, $opts, $context) = @_;
   my @values;
   my $join = _getopt(qr/^sep/, $opts, '');
   my $valtype = ref $value;
-  my %local;
-  for my $loc (keys %{$local}) {
-    $local{$loc} = $local->{$loc};
-  }
   if ($valtype eq 'ARRAY') {
     my $count = scalar @{$value};
     my $cur   = 0;
     for my $val (@{$value}) {
       ##[temp,apply]= $count, $cur
       my $repeat = Garden::Repeat->new($cur++, $count);
-      $local{$template} = $repeat;
+      $context->addLocal($template, $repeat);
       my @rec = ($val);
-      push(@values, $self->_callTemplate($template, $params, $data, 
-        \%local, \@rec));
+      push(@values, $self->_callTemplate($template, $params, 
+        $context, \@rec));
     }
   }
   elsif ($valtype eq 'HASH') {
@@ -505,13 +430,14 @@ sub _apply {
     my $cur   = 0;
     for my $key (@keys) {
       my $repeat = Garden::Repeat->new($cur++, $count);
-      $local{$template} = $repeat;
+      $context->addLocal($template, $repeat);
       my $val = $value->{$key};
       my @rec = ($key, $val);
-      push(@values, $self->_callTemplate($template, $params, $data, 
-        \%local, \@rec));
+      push(@values, $self->_callTemplate($template, $params,
+        $context, \@rec));
     }
   }
+  $context->delLocal($template);
   return join($join, @values);
 }
 
@@ -522,14 +448,9 @@ sub _err_invalid_var {
 
 ## Call a template (internal method.)
 sub _callTemplate {
-  my ($self, $name, $sigtext, $data, $local, $recurse) = @_;
+  my ($self, $name, $sigtext, $context, $recurse) = @_;
   ##[callTemp]= $data, $local
-  my $search = [
-    $local,
-    $data,
-    $self->namespace->dicts,
-    $self->namespace->plugins,
-  ];
+
   my $regex = $self->regex;
   my $nested  = $regex->{nested};
   my $attribs = $regex->{attribs};
@@ -544,12 +465,12 @@ sub _callTemplate {
       my ($tvar, $svar) = split(/\s*=\s*/, $sig);
       my $value;
       if ($svar =~ /^ $nested $/msx) {
-        $value = $self->_callTemplate($1, $2, $data, $local, $recurse);
+        $value = $self->_callTemplate($1, $2, $context, $recurse);
       }
       elsif ($svar =~ /^ (\w+) $attribs $/msx) {
-        $value = _search($search, $1); ## Find the main one.
+        $value = $context->find($1); ## Find the main one.
         if (defined $2) {
-          $value = $self->_get_attribs($value, $2, $search);
+          $value = $self->_get_attribs($value, $2, $context);
         }
       }
       else {
@@ -564,9 +485,9 @@ sub _callTemplate {
       }
       elsif ($sig =~ /^ (\w+) $attribs $/msx) {
         ##[callwtf]= $data $sig
-        my $value = _search($search, $1);
+        my $value = $context->find($1);
         if (defined $2) {
-          $value = $self->_get_attribs($value, $2, $search);
+          $value = $self->_get_attribs($value, $2, $context);
         }
         $call{$sig} = $value;
       }
@@ -576,13 +497,13 @@ sub _callTemplate {
     }
   }
   if ($name =~ /^ \( (\w+) $attribs \) /x) {
-    $name = _search($search, $1);
+    $name = $context->find($1);
     if ($2) {
-      $name = $self->_get_attribs($name, $2, $search);
+      $name = $self->_get_attribs($name, $2, $context);
     }
   }
   my $template = $self->namespace->get($name);
-  return $template->render(\%call, $local);
+  return $template->render(\%call, $context->local);
 }
 
 =back

@@ -15,7 +15,7 @@ The Perl 5 implementation is the first, and will be the test bed for the spec
 which I am working on along side of this. I intend to release version 1.0
 of the Garden library and the Garden spec at the same time.
 
-Get the spec at https://github.com/supernovus/garden-spec/
+Read the spec at http://supernovus.github.com/garden/
 
 See the tests for better examples, but here's a quick one:
 
