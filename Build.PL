@@ -10,7 +10,8 @@ Module::Build->new(
     module_name => 'Garden',
     license => 'artistic_2',
     requires => {
-      'Modern::Perl' => 0,
+      'Modern::Perl'     => 0,
+      'Regexp::Grammars' => 0,
     },
     build_requires => {
       'Test::More'       => 0,
