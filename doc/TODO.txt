@@ -22,5 +22,4 @@
      is to use aliases if you need to pass things in method calls.
      Using grammars will give us a lot more flexibility.
 ***  Anonymous templates. These will be easier with Regexp::Grammars.
-***  Multiple dispatch based on signature.
 
