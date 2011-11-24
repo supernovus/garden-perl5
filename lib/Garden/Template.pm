@@ -24,6 +24,7 @@ use Carp;
 
 use Garden::Repeat;
 use Garden::Context;
+use Garden::Grammar;
 
 #use Huri::Debug show => ['methods'];
 
@@ -83,35 +84,6 @@ sub signature {
   return $_[0]->{signature};
 }
 
-## Shared regexes.
-sub regex {
-  my $self = shift;
-  my $nested  = '\s* ( \(? \w+ \)? ) \((.*?)\) \s*';
-  my $opts    = '(?: \s* ; \s* (.*?) )?';
-  my $attribs = '(?: ((?: \. \(? \w+ \)? (?:\(.*?\))? )+))?'; 
-  return {
-    nested   => $nested,
-    opts     => $opts,
-    attribs  => $attribs,
-  };
-}
-
-## Parse an option string.
-sub _getopts {
-  my ($optstring) = @_;
-  my %opts;
-  if (defined $optstring && $optstring ne '') {
-    my @opts = split(/\s*;+\s*/, $optstring);
-    for my $opt (@opts) {
-      my ($oname, $oval) = split(/\s*=\s*/, $opt);
-      $oval =~ s/^\"//g;
-      $oval =~ s/\"$//g;
-      $opts{$oname} = $oval;
-    }
-  }
-  return \%opts;
-}
-
 ## Find an option via smart match.
 sub _getopt {
   my ($find, $opts, $default) = @_;
@@ -131,16 +103,11 @@ sub _get_attrib {
   my ($self, $object, $attrib, $context) = @_;
   my $type = ref $object;
   if (! $type) { return $object; } ## Should we fail instead?
-  my $methodcall;
-  my $method = '(?:\((.*?)\))';
-  my $attribs = $self->regex->{attribs};
-  if ($attrib =~ /^ \( (\w+) \) $method? /x) {
-    $attrib = $context->find($1);
-    $methodcall = $2;
-  }
-  elsif ($attrib =~ /^ (\w+) $method /x) {
-    $attrib = $1;
-    $methodcall = $2;
+  my $lookup;
+  my $methodcall; #del
+  my $attribs; #del
+  if ($attrib->{var}) {
+    $attrib = $self->_get_var($attrib->{var}{Variable}{var}, $context);
   }
   if ($type eq 'HASH') {
     if (exists $object->{$attrib}) {
@@ -225,16 +192,26 @@ sub _get_attrib {
 
 ## Parse attributes.
 sub _get_attribs {
-  my ($self, $object, $attrstring, $context) = @_;
-  if (!defined $attrstring || $attrstring eq '') {
+  my ($self, $object, $attribs, $context) = @_;
+  if (!$attribs) {
     return $object;
   }
-  $attrstring =~ s/^\.//g; ## Strip leading dot.
-  my @attrs = split(/\./, $attrstring);
-  for my $attr (@attrs) {
+  for my $attr (@{$attribs}) {
     $object = $self->_get_attrib($object, $attr, $context);
   }
   return $object;
+}
+
+## Get a variable
+sub _get_var {
+  my ($self, $variable, $context) = @_;
+  my $varname = $variable->{var};
+  my $value = $context->find($varname);
+  my $attribs = $variable->{Attrib};
+  if ($attribs) {
+    $value = $self->_get_attribs($value, $attribs, $context);
+  }
+  return $value;
 }
 
 =item render(...)
@@ -279,25 +256,21 @@ sub render {
   $context->addSource($self->namespace->dicts);
   $context->addSource($self->namespace->plugins);
 
-  my ($start_comment, $end_comment) = $self->namespace->get_syntax('comment');
-  my ($start_ex, $end_ex) = $self->namespace->get_syntax('delimiters');
-  my ($cond, $csep) = $self->namespace->get_syntax('condition');
-  my ($alias, $asep) = $self->namespace->get_syntax('alias');
-  my $note   = $self->namespace->get_syntax('note');
-  my $apply  = $self->namespace->get_syntax('apply');
-
   my $template = $self->{template};
   ##[temp,render]= $template
+  my ($start_comment, $end_comment) = $self->namespace->get_syntax('comment');
+  my $note = $self->namespace->get_syntax('note');
   $template =~ s/\Q$start_comment\E (.*?) \Q$end_comment\E//xgsm;
-  $template =~ s/\Q$note\E(.*?)$//xg;
-  my $regex    = $self->regex;
-  my $nested   = $regex->{nested};
-  my $opts     = $regex->{opts};
-  my $attribs  = $regex->{attribs};
+  $template =~ s/\Q$note\E(.*?)\n//xgsm;
+
+  my $syntax = $self->namespace->get_syntax();
+
+  my $alias = Garden::Grammar::alias($syntax);
 
   ## Look for aliases. Aliases should be on their own line.
-  $template =~ s/\Q$start_ex\E \s* \Q$alias\E (\w+) \s* \Q$asep\E \s* (\w+) $attribs 
-    \Q$end_ex\E \s*?\n? /$self->_set_alias($1, $2, $3, $context)/gmsex;
+  $template =~ s|$alias|$self->_set_alias($/{Alias}, $context)|gmsex;
+
+=comment
 
   ## Let's look for conditional blocks. 
   $template =~ s/\Q$start_ex\E \s* \Q$cond\E (.*?) \Q$apply\E (.*?) 
@@ -324,17 +297,41 @@ sub render {
   ### $1=Name, $2=Signature
   $template =~ s/\Q$start_ex\E $nested \Q$end_ex\E/
     $self->_callTemplate($1, $2, $context)/gmsex;
-  
+
+=cut
+
   return $template;
 }
 
 sub _set_alias {
-  my ($self, $alias, $var, $attribs, $context) = @_;
+  my ($self, $match, $context) = @_;
+  say "We're in set_alias";
+  my $alias = $match->{alias};
+  say "And alias is: $alias";
+  my $var = $match->{Variable}{var};
+  say "And we're mapping it to: $var";
+  my $attribs = $match->{Variable}{Attrib};
+  if ($attribs) {
+    say "We have attribs";
+    for my $attr (@{$attribs}) {
+      if ($attr->{name}) {
+        say " - " . $attr->{name};
+      }
+      elsif ($attr->{var}) {
+        say " * ". $attr->{var}{Variable}{var};
+      }
+      if ($attr->{Method}) {
+        say "   ^ a method";
+      }
+    }
+  }
+=comment
   my $value = $context->find($var);
   if ($attribs) {
     $value = $self->_get_attribs($value, $attribs, $context);
   }
   $context->addLocal($alias, $value);
+=cut
   return ''; ## Aliases don't return anything themselves.
 }
 
@@ -353,11 +350,11 @@ sub _parse_condition {
   my ($self, $sep, $conditions, $actions, $context) = @_;
   my @conditions = split(/\Q$sep\E/, $conditions);
   my @actions    = split(/\Q$sep\E/, $actions);
-  my $negate = $self->namespace->get_syntax('negate');
   my $regex = $self->regex;
   my $nested  = $regex->{nested};
   my $attribs = $regex->{attribs};
   my $c = 0;  ## Current condition.
+  my $negate;
   for my $cond (@conditions) {
     my $true = 1;
     my ($varname, $attrs);
@@ -455,7 +452,8 @@ sub _callTemplate {
   my $nested  = $regex->{nested};
   my $attribs = $regex->{attribs};
 
-  my $positional = $self->namespace->get_syntax('positional');
+  my $positional;
+
   my @signature = split(/\s*[;,]+\s*/, $sigtext);
   my %call; ## populate with the call parameters.
   my $rec=0; ## For recursion, what entry are we on?
