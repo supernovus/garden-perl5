@@ -35,11 +35,13 @@ qr{
   <rule: Method>
     \( <[Params]>* \)
   <rule: Params>
-    ( <.NamedParam> | <.Param> ) \,?
+    ( <Positional> | <NamedParam> | <Param> ) \,?
+  <rule: Positional>
+    (?{ quotemeta $SYNTAX->{positional} }) <var=(\w+)>
   <rule: Param>
-    <positional=(?{ quotemeta $SYNTAX->{positional} })>? <Variable> | <Template>
+    <Variable> | <Template>
   <rule: NamedParam>
-    <name=(\w+)> \= <.Param>
+    <name=(\w+)> \= <Param>
   <token: Template>
     ( <name=(\w+)> | <var=Indirect> ) <Method>
   <rule: Indirect>
