@@ -444,6 +444,22 @@ sub parseConditional {
   }
 }
 
+=item getDict($name)
+
+Find a dictionary of the given name in our namespace, and return it.
+If it does not exist, we will return nothing.
+
+=cut
+
+sub getDict {
+  my ($self, $name) = @_;
+  my $dicts = $self->namespace->dicts;
+  if (exists $dicts->{$name}) {
+    return $dicts->{$name};
+  }
+  return;
+}
+
 =back
 
 =cut

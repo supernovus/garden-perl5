@@ -4,10 +4,14 @@ Garden::Namespace - A collection of templates in a single file/namespace.
 
 =head1 DESCRIPTION
 
-This class is used internally. There is no direct documentation for it,
-as it is not a part of the public API. Read the Garden Spec instead,
-as all user-level interaction with this class is done using commands
-in template/namespace files.
+This class represents a Namespace object (typically the contents of a single
+file) and is not initialized manually, but through the Garden object.
+
+A template's namespace can be accessed via $template->namespace.
+
+=head1 PUBLIC METHODS
+
+=over 1
 
 =cut
 
@@ -62,15 +66,34 @@ sub requires_export {
   return ($self->{export_ok} > 1);
 }
 
+=item engine
+
+Returns the engine which loaded this namespace.
+
+=cut
+
 sub engine {
   my ($self) = @_;
   return $self->{engine};
 }
 
+=item templates
+
+Returns a hash of all known templates in this namespace.
+The key is the name of the template, the value is the Template object.
+
+=cut
+
 sub templates {
   my ($self) = @_;
   return $self->{templates};
 }
+
+=item dicts
+
+Returns a Hash representing all of the dictionary objects in this namespace.
+
+=cut
 
 sub dicts {
   my ($self) = @_;
@@ -82,9 +105,19 @@ sub add_export {
   push(@{$self->{exports}}, $export);
 }
 
-## This returns the appropriate value.
-## If you don't specify a type, it returns a hash
-## representing the current syntax for this namespace.
+=item get_syntax()
+
+Returns a Hash containing all of the syntax rules for this namespace.
+
+=cut
+
+=item get_syntax($type)
+
+Returns the syntax rules for the specific syntax type. If the type takes
+two parameters, it returns two values.
+
+=cut
+
 sub get_syntax {
   my ($self, $type) = @_;
   if (!defined $type) {
@@ -135,6 +168,13 @@ sub add_plugin {
   my $plugin = $plugclass->new(namespace=>$self, engine=>$self->engine);
   $self->{plugins}->{$plugid} = $plugin;
 }
+
+=item plugins
+
+Returns all plugins (including global) that are available in this
+namespace. Namespace specific plugins override global ones.
+
+=cut
 
 ## Return the list of plugins
 sub plugins {
@@ -218,6 +258,14 @@ sub import_namespace {
   }
 }
 
+=item add_template($name, $object)
+
+Add a Template object to the namespace, with the given name.
+If this Namespace is exporting to any other Namespaces, they will
+have the template added as well.
+
+=cut
+
 sub add_template {
   my ($self, $tid, $template) = @_;
   $self->{templates}->{$tid} = $template;
@@ -225,6 +273,14 @@ sub add_template {
     $export->{templates}->{$tid} = $template;
   }
 }
+
+=item add_dict($name, $object)
+
+Add a dictionary object (typically a hash) to this namespace.
+If this Namespace is exporting to any other Namespaces, they will
+have the dictionary added as well.
+
+=cut
 
 sub add_dict {
   my ($self, $did, $dict) = @_;
@@ -398,6 +454,15 @@ sub load_defs {
   }
 }
 
+=item get($template, ...)
+
+Get a template from this namespace. By default if the template is not
+found in this namespace, we will forward the request to the engine's
+get() method (using our own paths.) If you want to disable this recursion,
+specify "only => 1" as the second parameter.
+
+=cut
+
 sub get {
   my ($self, $name, %opts) = @_;
   ##[ns,get]= $name
@@ -412,6 +477,10 @@ sub get {
   }
   return;
 }
+
+=back
+
+=cut
 
 ## End of class.
 1;
