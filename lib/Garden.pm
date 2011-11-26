@@ -37,7 +37,10 @@ use Carp;
 
 use Garden::Namespace;
 
-our $VERSION = 0.25; ## This is 1.0-RC2
+our $VERSION = 1.0;
+
+use constant MIN_SPEC => 1; ## The lowest version of the spec we can parse.
+use constant MAX_SPEC => 1; ## The highest version of the spec we can parse.
 
 #use Huri::Debug show => ['all'];
 

@@ -4,10 +4,12 @@ The versioning in Garden is split into two parts:
     This is a single-digit, and templates can specify that they require
     a certain version by putting in a "version x" statement. A Garden
     implementation that does not implement the requested version will
-    bail without even trying to parse the document. Spec versions are
-    guaranteed to have backwards compatibility with all previous releases,
-    so a Garden implementation that supports Spec Version 15 will be able
-    to parse templates written for Spec Version 1.
+    bail without even trying to parse the document. Each implementation of
+    Garden can specify it's minimum and maximum version. Unless there is a
+    really good reason, every implementation should support all the way back
+    to spec version 1 templates. If the version statement is not specified
+    it is up to the implementation to determine how to handle it. For this
+    reason, it is recommended that all production templates specify a version.
 
 2.) The version of the Garden implementation. For this, the versioning
     scheme may be different from implementation to implementation. For the

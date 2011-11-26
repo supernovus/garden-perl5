@@ -225,6 +225,14 @@ sub load_defs {
   LINES: for my $line (@lines) {
     ## Okay, first, let's see if we're parsing statements.
     if ($in_statements) {
+      if ($line =~ /^\s*version\s+(\d+)/) {
+        my $needver = $1;
+        my $minver = $self->engine->MIN_SPEC;
+        my $maxver = $self->engine->MAX_SPEC;
+        if (($needver > $maxver) || ($needver < $minver)) {
+          croak "*** Attempted to load a version $needver template.\n    We can only parse from version $minver to version $maxver templates.\n    Please check for an updated release.";
+        }
+      }
       for my $override (keys %{$overrides}) {
         if (ref $overrides->{$override} eq 'ARRAY') {
           ## Two part syntax.

@@ -9,12 +9,12 @@
 ## If a COULD or SHOULD item doesn't make it in the target
 ## it will be moved to the next target.
 
-= Things to do for version 1.0 =
+= Things to do in upcoming 1.x releases =
 
-***  Make sure we haven't forgotten anything.
+**   Add ability to load templates/namespaces from strings.
+**   Tweak grammar for flexibility, speed, etc.
 
 = Things to do for version 2.0 =
 
-**   Work on tweaking the Grammar for added flexibility.
 *    Anonymous templates.
 
