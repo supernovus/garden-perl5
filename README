@@ -4,16 +4,14 @@ Garden: A Functional Template Engine (Perl 5 implementation)
 Garden is the name of a Template language I am designing, and plan to develop
 several implementations in various programming languages.
 
-At least Perl 5, Perl 6 and PHP implementations are planned, others may follow.
-
 It is inspired by StringTemplate (Java) with many influences from my own
 Flower XML engine (Perl 6), which itself was inspired by TAL/METAL.
 
 Templates written for one version of Garden should work in any implementation.
 
-The Perl 5 implementation is the first, and will be the test bed for the spec
-which I am working on along side of this. I intend to release version 1.0
-of the Garden library and the Garden spec at the same time.
+This Perl 5 implementation is the first, and is considered the reference
+implementation of the specification. In fact, the specification was developed
+in conjunction with this implementation.
 
 Read the spec at http://supernovus.github.com/garden/
 
