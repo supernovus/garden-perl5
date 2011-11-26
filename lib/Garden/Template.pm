@@ -276,7 +276,8 @@ sub render {
   my ($start_comment, $end_comment) = $self->namespace->get_syntax('comment');
   my $note = $self->namespace->get_syntax('note');
   $template =~ s/\Q$start_comment\E (.*?) \Q$end_comment\E//xgsm;
-  $template =~ s/\Q$note\E(.*?)\n//xgsm;
+  $template =~ s/^\Q$note\E(.*?)\n//xgsm;
+  $template =~ s/\s+\Q$note\E(.*?)\n/\n/xgsm;
 
   my $syntax = $self->namespace->get_syntax();
 
