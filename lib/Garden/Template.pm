@@ -28,6 +28,26 @@ use Garden::Grammar;
 
 #use Huri::Debug show => ['methods'];
 
+## Find an option in an Opts match object
+## via a regular expression search. Oo, ahh.
+sub getopt {
+  my ($find, $opts, $default) = @_;
+  if ( 
+    defined $opts 
+    && ref $opts eq 'HASH'
+    && defined $opts->{Opt}
+    && ref $opts->{Opt} eq 'ARRAY'
+  ) {
+    my @opts = @{$opts->{Opt}};
+    for my $opt (@opts) {
+      if ($opt->{name} ~~ $find) {
+        return $opt->{value};
+      }
+    }
+  }
+  return $default;
+}
+
 sub new {
   my ($class, %opts) = @_;
   my %self = ( 'template' => '', 'context' => 0 ); ## populate this.
@@ -53,7 +73,8 @@ Returns the template name.
 =cut
 
 sub name {
-  return $_[0]->{name};
+  my ($self) = @_;
+  return $self->{name};
 }
 
 =item namespace
@@ -66,12 +87,8 @@ will be possible in your application. At this time, that's not recommended.
 =cut
 
 sub namespace {
-  return $_[0]->{namespace};
-}
-
-sub set_template {
-  my ($self, $text) = @_;
-  $self->{template} = $text;
+  my ($self) = @_;
+  return $self->{namespace};
 }
 
 =item signature
@@ -81,26 +98,24 @@ Returns the signature for this template.
 =cut
 
 sub signature {
-  return $_[0]->{signature};
+  my ($self) = @_;
+  return $self->{signature};
 }
 
-## Find an option via smart match.
-sub getopt {
-  my ($find, $opts, $default) = @_;
-  if (defined $opts && ref $opts eq 'HASH') {
-    for my $key (keys %{$opts}) {
-      if ($key ~~ $find) {
-        return $opts->{$key};
-      }
-    }
-  }
-  return $default;
+sub context {
+  my ($self) = @_;
+  return $self->{context};
+}
+
+sub set_template {
+  my ($self, $text) = @_;
+  $self->{template} = $text;
 }
 
 ## Find an attrib. Supports Hashes and method calls with no parameters.
 sub get_attrib {
   ##[methods] In get attrib
-  my ($self, $object, $attrib, $context) = @_;
+  my ($self, $object, $attrib) = @_;
   my $type = ref $object;
   if (! $type) { return $object; } ## Should we fail instead?
   my $lookup;
@@ -109,7 +124,7 @@ sub get_attrib {
     $method = $attrib->{Method};
   }
   if ($attrib->{var}) {
-    $attrib = $self->get_var($attrib->{var}{Variable}, $context);
+    $attrib = $self->get_var($attrib->{var}{Variable});
   }
   else {
     $attrib = $attrib->{name};
@@ -181,24 +196,24 @@ sub get_attrib {
 
 ## Parse attributes.
 sub get_attribs {
-  my ($self, $object, $attribs, $context) = @_;
+  my ($self, $object, $attribs) = @_;
   if (!$attribs) {
     return $object;
   }
   for my $attr (@{$attribs}) {
-    $object = $self->get_attrib($object, $attr, $context);
+    $object = $self->get_attrib($object, $attr);
   }
   return $object;
 }
 
 ## Get a variable
 sub get_var {
-  my ($self, $variable, $context) = @_;
+  my ($self, $variable) = @_;
   my $varname = $variable->{var};
-  my $value = $context->find($varname);
+  my $value = $self->context->find($varname);
   my $attribs = $variable->{Attrib};
   if ($attribs) {
-    $value = $self->get_attribs($value, $attribs, $context);
+    $value = $self->get_attribs($value, $attribs);
   }
   return $value;
 }
@@ -230,8 +245,6 @@ use one or the other.
 
 =cut
 
-## We're not putting the $local hashref into the public API as it's
-## used internally, and not meant for public consumption.
 sub render {
   my $self = shift;
   my $data;
@@ -267,53 +280,56 @@ sub render {
 
   my $syntax = $self->namespace->get_syntax();
 
-  my $alias       = Garden::Grammar::alias($syntax);
-#  my $conditional = Garden::Grammar::conditional($syntax);
-#  my $application = Garden::Grammar::application($syntax);
-#  my $variable    = Garden::Grammar::variable($syntax);
-#  my $template    = Garden::Grammar::template($syntax);
-
-  $template =~ s|$alias|$self->set_alias($/{Alias})|gmsex;
-#  $template =~ s|$conditional|$self->conditional($/{Conditional})|gmsex;
-#  $template =~ s|$application|$self->apply($/{Application})|gmsex;
-#  $template =~ s|$variable|$self->expand($/{VariableCall})|gmsex;
-#  $template =~ s|$template|$self->template($/{TemplateCall}{Template})|gmsex;
+  $template = Garden::Grammar::parse($syntax, $template, $self);
 
   return $template;
 }
 
-sub set_alias {
+sub parseAlias {
   my ($self, $match) = @_;
-  say "We're in set_alias";
+#  say "We're in set_alias";
   my $alias = $match->{alias};
-  say "And alias is: $alias";
+#  say "And alias is: $alias";
   my $var = $match->{Variable};
-  my $varname = $var->{var};
-  say "And we're mapping it to: $varname";
-  my $attribs = $var->{Attrib};
-  if ($attribs) {
-    say "We have attribs";
-    for my $attr (@{$attribs}) {
-      if ($attr->{name}) {
-        say " - " . $attr->{name};
-      }
-      elsif ($attr->{var}) {
-        say " * ". $attr->{var}{Variable}{var};
-      }
-      if ($attr->{Method}) {
-        say "   ^ a method";
-      }
-    }
-  }
-=comment
-  my $value = $self->get_var($var, $context);
-  $context->addLocal($alias, $value);
-=cut
+#  my $varname = $var->{var};
+#  say "And we're mapping it to: $varname";
+#  my $attribs = $var->{Attrib};
+#  if ($attribs) {
+#    say "We have attribs";
+#    for my $attr (@{$attribs}) {
+#      if ($attr->{name}) {
+#        say " - " . $attr->{name};
+#      }
+#      elsif ($attr->{var}) {
+#        say " * ". $attr->{var}{Variable}{var};
+#      }
+#      if ($attr->{Method}) {
+#        say "   ^ a method";
+#      }
+#    }
+#  }
+  my $value = $self->get_var($var);
+  $self->context->addLocal($alias, $value);
   return ''; ## Aliases don't return anything themselves.
 }
 
-1;
-=fuck
+sub parseVariableCall {
+  my ($self, $match) = @_;
+  my $join = getopt(qr/^sep/, $match->{Opts}, '');
+  my $value = $self->get_var($match->{Variable});
+  my $valtype = ref $value;
+  if ($valtype eq 'ARRAY') {
+    $value = join($join, @{$value});
+  }
+  elsif ($valtype eq 'HASH') {
+    $value = join($join, sort keys %{$value});
+  }
+  return $value;
+}
+
+1; ## Temporary, until the following stuff is fixed.
+=broken
+
 sub _get_tempdef {
   my ($c, $actions, $nested) = @_;
   my $tempstring = $actions->[$c];
@@ -368,19 +384,6 @@ sub conditional {
   else {
     return ''; ## Death to failed conditionals.
   }
-}
-
-sub expand {
-  my ($self, $match) = @_;
-  my $join = getopt(qr/^sep/, $opts, '');
-  my $valtype = ref $value;
-  if ($valtype eq 'ARRAY') {
-    $value = join($join, @{$value});
-  }
-  elsif ($valtype eq 'HASH') {
-    $value = join($join, sort keys %{$value});
-  }
-  return $value;
 }
 
 sub apply {
