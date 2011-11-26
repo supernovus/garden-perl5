@@ -322,13 +322,7 @@ sub get_template {
   if (ref $template->{Method} eq 'HASH' && $template->{Method}{Params}) {
     $params = $template->{Method}{Params};
   }
-  my $name;
-  if ($template->{var}) {
-    $name = $self->get_var($template->{var}{Variable});
-  }
-  else {
-    $name = $template->{name};
-  }
+  my $name = $self->get_template_name($template);
 
   my %call; ## populate with the call parameters.
   my $rec=0; ## For recursion, what entry are we on?
@@ -362,6 +356,19 @@ sub get_template {
   return $nested->render(\%call, $self->context->local);
 }
 
+## Get a template name, works around indirection.
+sub get_template_name {
+  my ($self, $template) = @_;
+  my $name;
+  if ($template->{var}) {
+    $name = $self->get_var($template->{var}{Variable});
+  }
+  else {
+    $name = $template->{name};
+  }
+  return $name;
+}
+
 sub invalid_var {
   my ($self, $var) = @_;
   croak $self->name . " referenced invalid variable '$var'.";
@@ -374,7 +381,7 @@ sub parseApplication {
   my $value = $self->get_var($match->{Variable});
   my $valtype = ref $value;
   my $template = $match->{Template};
-  my $tempname = $template->{name};
+  my $tempname = $self->get_template_name($template);
 
   my @values;
   if ($valtype eq 'ARRAY') {
@@ -404,60 +411,32 @@ sub parseApplication {
   return join($join, @values);
 }
 
-1; ## Temporary, until the following stuff is fixed.
-
-=broken
-
-sub _get_tempdef {
-  my ($c, $actions, $nested) = @_;
-  my $tempstring = $actions->[$c];
-  if ($tempstring =~ /^ $nested $/msx) {
-    return ($1, $2);
-  }
-  else {
-    croak "Invalid template call: '$tempstring', cannot continue.";
-  }
-}
-
-sub conditional {
-  my ($self, $match, $context) = @_;
-  my @conditions = split(/\Q$sep\E/, $conditions);
-  my @actions    = split(/\Q$sep\E/, $actions);
-  my $regex = $self->regex;
-  my $nested  = $regex->{nested};
-  my $attribs = $regex->{attribs};
+sub parseConditional {
+  my ($self, $match) = @_;
+  my @conditions = @{$match->{Condition}};
+  my @actions    = @{$match->{Actions}};
   my $c = 0;  ## Current condition.
-  my $negate;
   for my $cond (@conditions) {
     my $true = 1;
-    my ($varname, $attrs);
-    if ($cond =~ /^ (\Q$negate\E)? (\w+) $attribs $/msx) {
-      $varname = $2;
-      $attrs   = $3;
-      if ($1) { $true = 0; }
+    if ($cond->{Negated}) {
+      $true = 0;
     }
-    else {
-      croak "Invalid condition: '$cond', cannot continue.";
-    }
-    my $value = $context->find($varname);
-    if (!defined $value || $value eq $varname) { 
+    my $value = $self->get_var($cond->{Variable});
+    if (!defined $value || $value eq $cond->{Variable}{var}) { 
       ## Couldn't find anything, skip it.
       $c++;
       next;
     }
-    if ($attrs) {
-      $value = $self->get_attribs($value, $attrs, $context);
-    }
     if (($true && $value)||(!$true && !$value)) {
-      my ($tempname, $tempsig) = _get_tempdef($c, \@actions, $nested);
-      return $self->_callTemplate($tempname, $tempsig, $context);
+      my $template = $actions[$c]->{Template};
+      return $self->get_template($template);
     }
     $c++;
   }
   my $acount = scalar @actions;
   if ($c < $acount) {
-    my ($tempname, $tempsig) = _get_tempdef($c, \@actions, $nested);
-    return $self->_callTemplate($tempname, $tempsig, $context);
+    my $template = $actions[$c]->{Template};
+    return $self->get_template($template);
   }
   else {
     return ''; ## Death to failed conditionals.

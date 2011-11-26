@@ -11,8 +11,7 @@
 
 = Things to do for version 1.0 =
 
-***  Finish porting to the new Grammar.
-***  Ensure all tests pass prior to releasing 1.0
+***  Make sure we haven't forgotten anything.
 
 = Things to do for version 2.0 =
 

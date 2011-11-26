@@ -82,7 +82,7 @@ qr{
     <.startEx> <Template> <.endEx>
 
   <token: Application>
-    <.startEx> <Variable> <.Apply> <Template> <Opts>? <.endEx>
+    <.startEx> <Variable> \s* <.Apply> \s* <Template> <Opts>? <.endEx>
 
   <token: VariableCall>
     <.startEx> <Variable> <Opts>? <.endEx>
