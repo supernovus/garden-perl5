@@ -33,12 +33,12 @@ sub need_opt {
 sub new {
   my ($class, %opts) = @_;
   my %self = (
-    templates => {},  ## The templates in this namespace.
-    syntax    => {},  ## Overridden syntax settings.
-    plugins   => {},  ## Section-specific plugins.
-    dicts     => {},  ## Namespace dictionaries.
-    exports   => [],  ## Namespaces we export do (they must allow exports.)
-    export_ok => 1,   ## Allow (1), require (2) or disallow (0) exports.
+    templates  => {},  ## The templates in this namespace.
+    syntax     => {},  ## Overridden syntax settings.
+    plugins    => {},  ## Section-specific plugins.
+    dicts      => {},  ## Namespace dictionaries.
+    exports    => [],  ## Namespaces we export do (they must allow exports.)
+    export_ok  => 1,   ## Allow (1), require (2) or disallow (0) exports.
   );
   my $engine = need_opt('engine', \%opts);
   my $lines  = need_opt('lines',  \%opts);
@@ -171,16 +171,39 @@ sub add_path {
 
 ## Import the templates and dicts from another namespace.
 sub import_namespace {
-  my ($self, $nsid, $export) = @_;
+  my ($self, $nsid, $opts) = @_;
+  my @imports = ('templates','dicts');
+  my $export  = 0;
+
+  ## Parse any options passed.
+  if ($opts) {
+    $opts =~ s/\s*$//g;
+    $opts =~ s/^\://g;
+    my @opts = split(/\s*\:/, $opts);
+
+    for my $opt (@opts) {
+      if ($opt =~ /^e?x/) {
+        $export = 1;
+      }
+      elsif ($opt =~ /^s/) {
+        push(@imports, 'syntax');
+      }
+      elsif ($opt =~ /^p/) {
+        push(@imports, 'plugins');
+      }
+    }
+  }
+
   my $namespace = $self->engine->get_namespace($nsid, paths => $self->{paths});
-  my %templates = %{$namespace->templates};
-  for my $tid (keys %templates) {
-    $self->{templates}->{$tid} = $templates{$tid};
+
+  ## Okay, now import what we've requested.
+  for my $import (@imports) {
+    my %import = %{$namespace->{$import}};
+    for my $id (keys %import) {
+      $self->{$import}->{$id} = $import{$id};
+    }
   }
-  my %dicts = %{$namespace->dicts};
-  for my $did (keys %dicts) {
-    $self->{dicts}->{$did} = $dicts{$did};
-  }
+
   ## Only use export if you really know what you're doing.
   if ($export) {
     if ($namespace->allows_export) {
@@ -230,7 +253,13 @@ sub load_defs {
         my $minver = $self->engine->MIN_SPEC;
         my $maxver = $self->engine->MAX_SPEC;
         if (($needver > $maxver) || ($needver < $minver)) {
-          croak "*** Attempted to load a version $needver template.\n    We can only parse from version $minver to version $maxver templates.\n    Please check for an updated release.";
+          croak "*** Attempted to load a version $needver template.\n    We can only parse from version $minver to version $maxver templates.\n    Please check for an updated release.\n";
+        }
+      }
+      if ($line =~ /^\s*use\s+(\w+)/) {
+        my $extension = lc($1);
+        if (!$self->engine->supports($extension)) {
+          croak "*** Template requires the $extension extension.\n    This implementation does not support that extension, sorry.\n";
         }
       }
       for my $override (keys %{$overrides}) {
@@ -254,7 +283,7 @@ sub load_defs {
         $self->add_path($1);
         next;
       }
-      if ($line =~ /^\s*import\s+\"(.*?)\"\s*(\:export)?/) {
+      if ($line =~ /^\s*import\s+\"(.*?)\"\s*((?:\:\w+\s*)+)?/) {
         $self->import_namespace($1, $2);
         next;
       }

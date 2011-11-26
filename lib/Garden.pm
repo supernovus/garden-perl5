@@ -37,7 +37,12 @@ use Carp;
 
 use Garden::Namespace;
 
-our $VERSION = 1.0;
+our $VERSION = 1.1;
+
+## The following will be set to a string representing a development
+## release, if we are not yet a stable release. It will be set to
+## 0 if this is a stable release.
+our $DEVEL = 'RC1';
 
 use constant MIN_SPEC => 1; ## The lowest version of the spec we can parse.
 use constant MAX_SPEC => 1; ## The highest version of the spec we can parse.
@@ -91,7 +96,7 @@ sub new {
       comment    => ['/*', '*/'],
       condition  => [ '?', ';' ],
       alias      => ['::', '=' ],
-      note       => '//',
+      note       => '##',
       positional => '*',
       apply      => ':',
       negate     => '!',
@@ -99,6 +104,9 @@ sub new {
     paths      => [], ## Paths we search for files in.
     namespaces => {}, ## Each file we load, represents a Namespace.
     plugins    => {}, ## Plugins add additional functionality.
+    extensions => {   ## Extensions we support.
+      plugins  => 1,   ## We support the plugins extension.
+    },
   );
   ## Now let's see if we've overridden any of them.
   for my $key (keys %self) {
@@ -162,6 +170,20 @@ Returns the list of global plugins.
 sub plugins {
   my ($self) = @_;
   return $self->{plugins};
+}
+
+=item supports($extension)
+
+Returns the version of an extension we support.
+Will return false if we do not support the extension.
+
+=cut
+
+sub supports {
+  my ($self, $extension) = @_;
+  if (exists $self->{extensions}{$extension}) {
+    return $self->{extensions}{$extension};
+  }
 }
 
 =item addPath($path,...)

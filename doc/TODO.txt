@@ -24,5 +24,6 @@
 
 = Things to do for version 2.0 =
 
+**   Whitespace ignoring blocks.
 *    Anonymous templates.
 
