@@ -43,6 +43,7 @@ sub new {
     dicts      => {},  ## Namespace dictionaries.
     exports    => [],  ## Namespaces we export do (they must allow exports.)
     export_ok  => 1,   ## Allow (1), require (2) or disallow (0) exports.
+    extensions => {},  ## Our known extensions, and if they are enabled.
   );
   my $engine = need_opt('engine', \%opts);
   my $lines  = need_opt('lines',  \%opts);
@@ -176,9 +177,8 @@ namespace. Namespace specific plugins override global ones.
 
 =cut
 
-## Return the list of plugins
 sub plugins {
-  my $self = shift;
+  my ($self) = @_;
   my %plugins;
   my %localplug  = %{$self->{plugins}};
   my %globalplug = %{$self->engine->plugins};
@@ -189,6 +189,28 @@ sub plugins {
     $plugins{$plug} = $localplug{$plug};
   }
   return \%plugins;
+}
+
+=item extensions 
+
+Returns a hash of our extensions, and if they are enabled or not.
+
+=cut
+
+sub extensions {
+  my ($self) = @_;
+  return $self->{extensions};
+}
+
+=item isext($extension)
+
+Returns if the specified extension is enabled.
+
+=cut
+
+sub isext {
+  my ($self, $ext) = @_;
+  return $self->{extensions}{$ext};
 }
 
 ## Add a path. No, there's no append path method here.
@@ -229,6 +251,8 @@ sub import_namespace {
         push(@imports, 'syntax');
       }
       elsif ($opt =~ /^p/) {
+        ## If we didn't has extensions loaded, do it now.
+        $self->{extensions}{plugins} = 1;
         push(@imports, 'plugins');
       }
     }
@@ -301,12 +325,18 @@ sub load_defs {
   my $overrides = $self->engine->syntax; ## Used if overriding syntax.
   my $syntax; ## We'll set this below. Once statements are parsed, this
               ## won't change anymore.
-  my $do_json = 0; ## By default we don't check for JSON blocks.
-                   ## You need to 'use json' to enable them.
+
+  ## Extensions. If we find a use statement for an extension we will
+  ## ensure we can handle it, and enable it.
+  my $exts = $self->extensions; 
+  for my $ext ($self->engine->extensions) {
+    $exts->{$ext} = 0;
+  }
+
   LINES: for my $line (@lines) {
     ## Okay, first, let's see if we're parsing statements.
     if ($in_statements) {
-      if ($line =~ /^\s*version\s+(\d+)/) {
+      if ($line =~ /^version\s+(\d+)/) {
         my $needver = $1;
         my $minver = $self->engine->MIN_SPEC;
         my $maxver = $self->engine->MAX_SPEC;
@@ -314,50 +344,52 @@ sub load_defs {
           croak "*** Attempted to load a version $needver template.\n    We can only parse from version $minver to version $maxver templates.\n    Please check for an updated release.\n";
         }
       }
-      if ($line =~ /^\s*use\s+(\w+)/) {
+      if ($line =~ /^use\s+(\w+)/) {
         my $extension = lc($1);
         if (!$self->engine->supports($extension)) {
           croak "*** Template requires the $extension extension.\n    This implementation does not support that extension, sorry.\n";
         }
-        if ($extension eq 'json') {
-          $do_json = 1;
+        $exts->{$extension} = 1;
+      }
+      if ($exts->{globals} && $line =~ /^global (\w+)/x) {
+        if (! exists $self->engine->globals->{$1}) {
+          croak "*** Template requested an unknown global variable: $1\n";
         }
       }
       for my $override (keys %{$overrides}) {
         if (ref $overrides->{$override} eq 'ARRAY') {
           ## Two part syntax.
-          if ($line =~ /^ \s* $override \s+ \"(.*?)\" , \s* \"(.*?)\" /x) {
+          if ($line =~ /^$override \s+ \"(.*?)\" , \s* \"(.*?)\" /x) {
             my $value = [ $1, $2 ];
             $self->set_syntax($override, $value);
             next LINES;
           }
         }
         else {
-          if ($line =~ /^ \s* $override \s+ "(.*?)\" /x) {
+          if ($line =~ /^$override \s+ "(.*?)\" /x) {
             my $value = $1;
             $self->set_syntax($override, $value);
             next LINES;
           }
         }
       }
-      if ($line =~ /^\s*include\s+\"(.*?)\"/) {
+      if ($line =~ /^include\s+\"(.*?)\"/) {
         $self->add_path($1);
         next;
       }
-      if ($line =~ /^\s*import\s+\"(.*?)\"\s*((?:\:\w+\s*)+)?/) {
+      if ($line =~ /^import\s+\"(.*?)\"\s*((?:\:\w+\s*)+)?/) {
         $self->import_namespace($1, $2);
         next;
       }
-      if ($line =~ /^\s*no[\-\s_]export/) {
+      if ($line =~ /^no[\-\s_]export/) {
         $self->{export_ok} = 0;
       }
-      if ($line =~ /^\s*require[\-\s_]export/) {
+      if ($line =~ /^require[\-\s_]export/) {
         $self->{export_ok} = 2;
       }
-      ## Okay, plugins. Specify a name, and a class.
-      ## NOTE: Plugins are NOT imported with the import statement.
-      ## if you want a plugin in a namespace, add it in that namespace.
-      if ($line =~ /^\s*plugin\s+\"(.*?)\",\s*\"(.*?)\"/) {
+
+      ## The Plugins extension.
+      if ($exts->{plugins} && $line =~ /^plugin\s+\"(.*?)\",\s*\"(.*?)\"/) {
         $self->add_plugin($1, $2);
         next;
       }
@@ -444,7 +476,7 @@ sub load_defs {
         $in_statements = 0;
         next;
       }
-      elsif ($do_json && $line =~ /^ $blockname \Q$start_json\E/x) {
+      elsif ($exts->{json} && $line =~ /^ $blockname \Q$start_json\E/x) {
         $current_block = $1;
         $in_block = 3;
         $in_statements = 0;

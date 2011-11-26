@@ -13,11 +13,13 @@
 
 ***  Update to a completed Spec Release 1.
 ***  Add tests for the JSON extension.
+***  Add tests for the Global variable extension.
 
 = Things to do in upcoming 1.x releases =
 
 **   Add ability to load templates/namespaces from strings.
 **   Tweak grammar for flexibility, speed, etc.
+**   Add tests for invalid behaviors (dies_ok, etc.)
 
 = Things to do for version 2.0 =
 

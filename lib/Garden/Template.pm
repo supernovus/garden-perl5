@@ -268,7 +268,12 @@ sub render {
   $context->addSource($local);
   $context->addSource($data, $self->signature, 1);
   $context->addSource($self->namespace->dicts);
-  $context->addSource($self->namespace->plugins);
+  if ($self->namespace->isext('plugins')) {
+    $context->addSource($self->namespace->plugins);
+  }
+  if ($self->namespace->isext('globals')) {
+    $context->addSource($self->namespace->engine->globals);
+  }
   $self->{context} = $context;
 
   my $template = $self->{template};

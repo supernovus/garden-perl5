@@ -42,7 +42,7 @@ our $VERSION = 1.1;
 ## The following will be set to a string representing a development
 ## release, if we are not yet a stable release. It will be set to
 ## 0 if this is a stable release.
-our $DEVEL = 'RC2';
+our $DEVEL = 'RC3';
 
 use constant MIN_SPEC => 1; ## The lowest version of the spec we can parse.
 use constant MAX_SPEC => 1; ## The highest version of the spec we can parse.
@@ -105,9 +105,11 @@ sub new {
     paths      => [], ## Paths we search for files in.
     namespaces => {}, ## Each file we load, represents a Namespace.
     plugins    => {}, ## Plugins add additional functionality.
+    globals    => {}, ## Global variables, available anywhere.
     extensions => {   ## Extensions we support.
       plugins  => 1,  ## We support the plugins extension.
       json     => 1,  ## We support the JSON extension.
+      globals  => 1,  ## We support the Global variables extension.
     },
   );
   ## Now let's see if we've overridden any of them.
@@ -172,6 +174,40 @@ Returns the list of global plugins.
 sub plugins {
   my ($self) = @_;
   return $self->{plugins};
+}
+
+=item globals
+
+Returns the list of global variables.
+
+=cut
+
+sub globals {
+  my ($self) = @_;
+  return $self->{globals};
+}
+
+=item extensions
+
+Returns the list of extensions we support.
+This returns a flat array, consisting of just the names.
+
+=item extensions(1)
+
+Returns the list of extensions we support.
+This returns a hash reference, with the key being the name of the extension,
+and the value being the version of that extension we support.
+
+=cut
+
+sub extensions {
+  my ($self, $full) = @_;
+  if ($full) {
+    return $self->{extensions};
+  }
+  else {
+    return keys %{$self->{extensions}};
+  }
 }
 
 =item supports($extension)
@@ -253,6 +289,19 @@ sub addPlugin {
     }
     $self->{plugins}->{$plug} = $plugin;
   }
+}
+
+=item addGlobal($name, $value)
+
+Add a global variable that will be available to any namespace/template.
+Namespaces can declare they require specific global variables, using the
+optional "global" statement.
+
+=cut
+
+sub addGlobal {
+  my ($self, $name, $value) = @_;
+  $self->{globals}->{$name} = $value;
 }
 
 ## Add a namespace object to our cache.
