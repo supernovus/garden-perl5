@@ -42,7 +42,7 @@ our $VERSION = 1.1;
 ## The following will be set to a string representing a development
 ## release, if we are not yet a stable release. It will be set to
 ## 0 if this is a stable release.
-our $DEVEL = 'RC1';
+our $DEVEL = 'RC2';
 
 use constant MIN_SPEC => 1; ## The lowest version of the spec we can parse.
 use constant MAX_SPEC => 1; ## The highest version of the spec we can parse.
@@ -93,6 +93,7 @@ sub new {
       delimiters => ['[[', ']]'],
       block      => ['{{', '}}'],
       dictblock  => ['{[', ']}'],
+      jsonblock  => ['{<', '>}'],
       comment    => ['/*', '*/'],
       condition  => [ '?', ';' ],
       alias      => ['::', '=' ],
@@ -105,7 +106,8 @@ sub new {
     namespaces => {}, ## Each file we load, represents a Namespace.
     plugins    => {}, ## Plugins add additional functionality.
     extensions => {   ## Extensions we support.
-      plugins  => 1,   ## We support the plugins extension.
+      plugins  => 1,  ## We support the plugins extension.
+      json     => 1,  ## We support the JSON extension.
     },
   );
   ## Now let's see if we've overridden any of them.

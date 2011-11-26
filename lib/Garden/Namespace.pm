@@ -239,12 +239,14 @@ sub load_defs {
   my ($self, @lines) = @_;
   ##[ns] In load_defs()
   my $in_statements = 1; ## Once a block is found, set to 0.
-  my $in_block = 0; ## Set to 1 for Template blocks, and 2 for Dict blocks.
+  my $in_block = 0; ## 1 Template, 2 Dict, 3 JSON (if supported.)
   my $block_text = '';
   my $current_block;
   my $overrides = $self->engine->syntax; ## Used if overriding syntax.
   my $syntax; ## We'll set this below. Once statements are parsed, this
               ## won't change anymore.
+  my $do_json = 0; ## By default we don't check for JSON blocks.
+                   ## You need to 'use json' to enable them.
   LINES: for my $line (@lines) {
     ## Okay, first, let's see if we're parsing statements.
     if ($in_statements) {
@@ -260,6 +262,9 @@ sub load_defs {
         my $extension = lc($1);
         if (!$self->engine->supports($extension)) {
           croak "*** Template requires the $extension extension.\n    This implementation does not support that extension, sorry.\n";
+        }
+        if ($extension eq 'json') {
+          $do_json = 1;
         }
       }
       for my $override (keys %{$overrides}) {
@@ -310,18 +315,26 @@ sub load_defs {
       elsif ($in_block == 2) {
         $end_block = $syntax->{dictblock}[1];
       }
+      elsif ($in_block == 3) {
+        $end_block = $syntax->{json}[1];
+      }
       ##[ns,load]= $end_block
       if ($line =~ /^\s*\Q$end_block\E\s*$/sm) {
         ##[ns,load] Found end template block.
         if ($in_block == 1) {
           $current_block->set_template($block_text);
         }
+        elsif ($in_block == 3) {
+          require JSON;
+          my $json = JSON->new->utf8->decode($block_text);
+          $self->add_dict($current_block, $json);
+        }
         undef($current_block);
         $block_text = '';
         $in_block = 0;
       }
       else {
-        if ($in_block == 1) {
+        if ($in_block == 1 || $in_block == 3) {
           $block_text .= $line;
         }
         elsif ($in_block == 2) {
@@ -338,6 +351,7 @@ sub load_defs {
       my $start_template = $syntax->{block}[0];
       my $end_template   = $syntax->{block}[1];
       my $start_dict     = $syntax->{dictblock}[0];
+      my $start_json     = $syntax->{json}[0];
       my $blockname = '\s*(\w+)\s*';
       my $signature = '\((.*?)\)\s*';
       if ($line =~ /^ $blockname $signature \Q$start_template\E 
@@ -371,6 +385,12 @@ sub load_defs {
         $current_block = {};
         $self->add_dict($1, $current_block);
         $in_block = 2;
+        $in_statements = 0;
+        next;
+      }
+      elsif ($do_json && $line =~ /^ $blockname \Q$start_json\E/x) {
+        $current_block = $1;
+        $in_block = 3;
         $in_statements = 0;
         next;
       }
