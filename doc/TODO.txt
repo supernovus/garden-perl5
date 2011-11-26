@@ -11,9 +11,11 @@
 
 = Things to do for version 1.0 =
 
-***  More testing and fixing any bugs found.
+***  Finish porting to the new Grammar.
+***  Ensure all tests pass prior to releasing 1.0
 
 = Things to do for version 2.0 =
 
-**  Anonymous templates. 
+**   Work on tweaking the Grammar for added flexibility.
+*    Anonymous templates.
 

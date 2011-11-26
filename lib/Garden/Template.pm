@@ -26,7 +26,7 @@ use Garden::Repeat;
 use Garden::Context;
 use Garden::Grammar;
 
-#use Huri::Debug show => ['methods'];
+#use Huri::Debug show => ['template'];
 
 ## Find an option in an Opts match object
 ## via a regular expression search. Oo, ahh.
@@ -172,11 +172,11 @@ sub get_attrib {
         ##[methods]= $sig
         if ($sig->{NamedParam}) {
           my $sname = $sig->{NamedParam}{name};
-          my $sval = $self->get_param($sig->{NamedParam}{Param});
+          my $sval = $self->get_var($sig->{NamedParam}{Variable});
           push(@params, $sname, $sval);
         }
-        elsif ($sig->{Param}) {
-          my $value = $self->get_param($sig->{Param});
+        else {
+          my $value = $self->get_param($sig);
           push(@params, $value);
         }
       }
@@ -225,7 +225,7 @@ sub get_param {
     return $self->get_var($param->{Variable});
   }
   elsif ($param->{Template}) {
-    return $self->template($param->{Template});
+    return $self->get_template($param->{Template});
   }
 }
 
@@ -288,25 +288,8 @@ sub render {
 sub parseAlias {
   my ($self, $match) = @_;
   my $alias = $match->{alias};
-  my $var = $match->{Variable};
-#  my $varname = $var->{var};
-#  say "We're mapping $alias to $varname";
-#  my $attribs = $var->{Attrib};
-#  if ($attribs) {
-#    say "---";
-#    for my $attr (@{$attribs}) {
-#      if ($attr->{name}) {
-#        say " - " . $attr->{name};
-#      }
-#      elsif ($attr->{var}) {
-#        say " * ". $attr->{var}{Variable}{var};
-#      }
-#      if ($attr->{Method}) {
-#        say "   ^ a method";
-#      }
-#    }
-#  }
-  my $value = $self->get_var($var);
+  ##[parseAlias]= $match
+  my $value = $self->get_param($match);
   $self->context->addLocal($alias, $value);
   return ''; ## Aliases don't return anything themselves.
 }
@@ -325,7 +308,67 @@ sub parseVariableCall {
   return $value;
 }
 
+sub parseTemplateCall {
+  my ($self, $match) = @_;
+  return $self->get_template($match->{Template});
+}
+
+sub get_template {
+  my ($self, $template, $recurse) = @_;
+
+  ##[callTemp]= $template
+
+  my $params; 
+  if (ref $template->{Method} eq 'HASH' && $template->{Method}{Params}) {
+    $params = $template->{Method}{Params};
+  }
+  my $name;
+  if ($template->{var}) {
+    $name = $self->get_var($template->{var}{Variable});
+  }
+  else {
+    $name = $template->{name};
+  }
+
+  my %call; ## populate with the call parameters.
+  my $rec=0; ## For recursion, what entry are we on?
+
+  if ($params) {
+    for my $param (@{$params}) {
+      ##[template]= $param
+      if ($param->{NamedParam}) {
+        my $name = $param->{NamedParam}{name};
+        my $val  = $self->get_var($param->{NamedParam}{Variable});
+        $call{$name} = $val;
+      }
+      elsif ($param->{Positional}) {
+        if (!$recurse) { 
+          croak "Attempt to use a positional variable in an invalid location.";
+        }
+        my $name = $param->{Positional}{var};
+        $call{$name} = $recurse->[$rec++];
+      }
+      elsif ($param->{Variable}) {
+        my $name = $param->{Variable}{var};
+        my $val  = $self->get_var($param->{Variable});
+        $call{$name} = $val;
+      }
+      else {
+        $self->invalid_var($param->{""});
+      }
+    }
+  }
+  my $nested = $self->namespace->get($name);
+  return $nested->render(\%call, $self->context->local);
+}
+
+sub invalid_var {
+  my ($self, $var) = @_;
+  croak $self->name . " referenced invalid variable '$var'.";
+}
+
 1; ## Temporary, until the following stuff is fixed.
+
 =broken
 
 sub _get_tempdef {
@@ -416,72 +459,6 @@ sub apply {
   }
   $context->delLocal($template);
   return join($join, @values);
-}
-
-sub invalid_var {
-  my ($self, $var) = @_;
-  croak $self->name . " referenced invalid variable '$var'.";
-}
-
-## Call a template (internal method.)
-sub callTemplate {
-  my ($self, $name, $sigtext, $recurse) = @_;
-  ##[callTemp]= $data, $local
-
-  my $regex = $self->regex;
-  my $nested  = $regex->{nested};
-  my $attribs = $regex->{attribs};
-
-  my $positional;
-
-  my @signature = split(/\s*[;,]+\s*/, $sigtext);
-  my %call; ## populate with the call parameters.
-  my $rec=0; ## For recursion, what entry are we on?
-  for my $sig (@signature) {
-    if (! defined $sig || $sig eq '') { next; }
-    if ($sig =~ /=/) {
-      my ($tvar, $svar) = split(/\s*=\s*/, $sig);
-      my $value;
-      if ($svar =~ /^ $nested $/msx) {
-        $value = $self->_callTemplate($1, $2, $context, $recurse);
-      }
-      elsif ($svar =~ /^ (\w+) $attribs $/msx) {
-        $value = $context->find($1); ## Find the main one.
-        if (defined $2) {
-          $value = $self->get_attribs($value, $2, $context);
-        }
-      }
-      else {
-        $self->invalid_var($svar);
-      }
-      $call{$tvar} = $value;
-    }
-    else {
-      if ($sig =~ /^\Q$positional\E/) {
-        $sig =~ s/^\Q$positional\E//; ## Strip the leading *.
-        $call{$sig} = $recurse->[$rec++];
-      }
-      elsif ($sig =~ /^ (\w+) $attribs $/msx) {
-        ##[callwtf]= $data $sig
-        my $value = $context->find($1);
-        if (defined $2) {
-          $value = $self->get_attribs($value, $2, $context);
-        }
-        $call{$sig} = $value;
-      }
-      else {
-        $self->invalid_var($sig);
-      }
-    }
-  }
-  if ($name =~ /^ \( (\w+) $attribs \) /x) {
-    $name = $context->find($1);
-    if ($2) {
-      $name = $self->get_attribs($name, $2, $context);
-    }
-  }
-  my $template = $self->namespace->get($name);
-  return $template->render(\%call, $context->local);
 }
 
 =back

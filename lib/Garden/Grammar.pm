@@ -25,7 +25,7 @@ qr{
     (??{ quotemeta $SYNTAX->{alias}[0] })
     <alias=(\w+)>
     (??{ quotemeta $SYNTAX->{alias}[1] })
-    <Variable>
+    ( <Variable> | <Template> )
     <.endEx>
     \s*?\n?
 
@@ -49,13 +49,19 @@ qr{
     <[Attrib]>*
 
   <token: Attrib>
-     \. ( <name=(\w+)> | <var=Indirect> ) <Method>?
+     \. ( <name=(\w+)> | <var=Indirect> ) <Method=AttrMethod>?
 
-  <rule: Method>
-    \( <[Params]>* \)
+  <rule: AttrMethod>
+    \( <[Params=AttrParams]>* \)
 
-  <rule: Params>
-    ( <Positional> | <NamedParam> | <Param> ) \,?
+  <rule: AttrParams>
+    ( <NamedParam> | <Variable> | <Template> ) \,?
+
+  <rule: TemplateMethod>
+    \( <[Params=TemplateParams]>* \)
+
+  <rule: TemplateParams>
+    ( <Positional> | <NamedParam> | <Variable> ) \,?
 
   <rule: Positional>
     (??{ quotemeta $SYNTAX->{positional} }) <var=(\w+)>
@@ -63,14 +69,11 @@ qr{
   <rule: Negated>
     (??{ quotemeta $SYNTAX->{negate} })
 
-  <rule: Param>
-    <Variable> | <Template>
-
   <rule: NamedParam>
-    <name=(\w+)> \= <Param>
+    <name=(\w+)> \= <Variable>
 
   <token: Template>
-    ( <name=(\w+)> | <var=Indirect> ) <Method>
+    ( <name=(\w+)> | <var=Indirect> ) <Method=TemplateMethod>
 
   <rule: Indirect>
     \( <Variable> \)
