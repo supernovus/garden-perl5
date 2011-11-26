@@ -37,15 +37,7 @@ use Carp;
 
 use Garden::Namespace;
 
-## Our version number is a two digit number. The first represents a stable
-## API for backwards compatibility of scripts and templates, and forwards
-## compatibility of templates. Basically, any script written for version 1.0
-## will work on version 1.x. Any template written for version 1.x will work 
-## on version 1.y. The second digit is the number of updates that have been
-## committed to the library in this stable version. So 1.11 would indicate
-## 11 updates to the first major version.
-
-our $VERSION = 0.15; ## This is 1.0-RC1
+our $VERSION = 0.25; ## This is 1.0-RC2
 
 #use Huri::Debug show => ['all'];
 
@@ -133,7 +125,8 @@ Returns the Hash reference representing the top-level syntax settings.
 =cut
 
 sub syntax {
-  return $_[0]->{syntax};
+  my ($self) = @_;
+  return $self->{syntax};
 }
 
 =item paths
@@ -164,13 +157,16 @@ Returns the list of global plugins.
 =cut
 
 sub plugins {
-  return $_[0]->{plugins};
+  my ($self) = @_;
+  return $self->{plugins};
 }
 
-=item addPath($path)
+=item addPath($path,...)
 
 Add a path to look for templates in. The path will be added to the
 top of the search list (so it will be looked in first.)
+
+You can specify multiple paths if you want.
 
 =cut
 
@@ -181,10 +177,12 @@ sub addPath {
   }
 }
 
-=item appendPath($path)
+=item appendPath($path,...)
 
 Add a path to look for templates in. The path will be added to the
 bottom of the search list (so it will be looked in after existing paths.)
+
+You can specify multiple paths if you want.
 
 =cut
 

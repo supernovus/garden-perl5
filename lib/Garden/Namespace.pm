@@ -52,26 +52,29 @@ sub new {
 
 ## Do we allow exports?
 sub allows_export {
-  my $self = shift;
+  my ($self) = @_;
   return $self->{export_ok};
 }
 
 ## Do we require exports?
 sub requires_export {
-  my $self = shift;
+  my ($self) = @_;
   return ($self->{export_ok} > 1);
 }
 
 sub engine {
-  return $_[0]->{engine};
+  my ($self) = @_;
+  return $self->{engine};
 }
 
 sub templates {
-  return $_[0]->{templates};
+  my ($self) = @_;
+  return $self->{templates};
 }
 
 sub dicts {
-  return $_[0]->{dicts};
+  my ($self) = @_;
+  return $self->{dicts};
 }
 
 sub add_export {

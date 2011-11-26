@@ -53,7 +53,8 @@ Returns the current iteration number (starts from 0)
 =cut
 
 sub index {
-  return $_[0]->{index};
+  my ($self) = @_;
+  return $self->{index};
 }
 
 =item length
@@ -63,7 +64,8 @@ Returns the number of items in the array.
 =cut
 
 sub length {
-  return $_[0]->{length};
+  my ($self) = @_;
+  return $self->{length};
 }
 
 =item count
@@ -73,7 +75,8 @@ Alias for 'length'.
 =cut
 
 sub count {
-  return $_[0]->{length};
+  my ($self) = @_;
+  return $self->{length};
 }
 
 =item number
@@ -87,7 +90,7 @@ this value.
 =cut
 
 sub number {
-  my $self = shift;
+  my ($self) = @_;
   return $self->index + 1;
 }
 
@@ -98,7 +101,7 @@ Returns true if this is the first item.
 =cut
 
 sub start {
-  my $self = shift;
+  my ($self) = @_;
   return ($self->index == 0);
 }
 
@@ -109,7 +112,7 @@ Returns true if this is the last item.
 =cut
 
 sub end {
-  my $self = shift;
+  my ($self) = @_;
   return ($self->index == $self->length-1);
 }
 
@@ -120,7 +123,7 @@ Returns true if the number is odd.
 =cut
 
 sub odd {
-  my $self = shift;
+  my ($self) = @_;
   return ($self->number % 2 != 0);
 }
 
@@ -131,7 +134,7 @@ Returns true if the number is even.
 =cut
 
 sub even {
-  my $self = shift;
+  my ($self) = @_;
   return ($self->number % 2 == 0);
 }
 

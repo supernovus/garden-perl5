@@ -287,15 +287,13 @@ sub render {
 
 sub parseAlias {
   my ($self, $match) = @_;
-#  say "We're in set_alias";
   my $alias = $match->{alias};
-#  say "And alias is: $alias";
   my $var = $match->{Variable};
 #  my $varname = $var->{var};
-#  say "And we're mapping it to: $varname";
+#  say "We're mapping $alias to $varname";
 #  my $attribs = $var->{Attrib};
 #  if ($attribs) {
-#    say "We have attribs";
+#    say "---";
 #    for my $attr (@{$attribs}) {
 #      if ($attr->{name}) {
 #        say " - " . $attr->{name};

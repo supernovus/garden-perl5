@@ -1,0 +1,27 @@
+The versioning in Garden is split into two parts:
+
+1.) The version of the Garden Spec implemented.
+    This is a single-digit, and templates can specify that they require
+    a certain version by putting in a "version x" statement. A Garden
+    implementation that does not implement the requested version will
+    bail without even trying to parse the document. Spec versions are
+    guaranteed to have backwards compatibility with all previous releases,
+    so a Garden implementation that supports Spec Version 15 will be able
+    to parse templates written for Spec Version 1.
+
+2.) The version of the Garden implementation. For this, the versioning
+    scheme may be different from implementation to implementation. For the
+    implementations written by me (Timothy Totten), the versions are a two
+    digit number, where the first digit represents full backwards compatibility
+    for any script/library written for that version. So, a script written for
+    version 1.0 will be able to run in version 1.27. It is not guaranteed that
+    said script will be able to run in version 2.0 without modifications.
+    Again, scripts/libraries can specify they require a specific version
+    in the "use Garden" statement.
+
+One final note: All of the above applies to stable releases only. 
+Implementations with versions below 1.0 or versions with the "DEV" flag,
+are not considered stable, and will probably change before final release.
+Similarly, DRAFT versions of the Spec are not guaranteed to fully reflect
+the final state of the upcoming Spec release.
+

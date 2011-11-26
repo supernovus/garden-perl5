@@ -15,11 +15,5 @@
 
 = Things to do for version 2.0 =
 
-***  Rewrite the Template parser to use Regexp::Grammers.
-     Currently you can't do things like [[obj.method(another.property)]]
-     as the split on attribs turns that into ["method(another",property]
-     which is certainly not correct. The work around at the time being
-     is to use aliases if you need to pass things in method calls.
-     Using grammars will give us a lot more flexibility.
-***  Anonymous templates. These will be easier with Regexp::Grammars.
+**  Anonymous templates. 
 
