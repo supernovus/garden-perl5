@@ -316,7 +316,7 @@ sub load_defs {
         $end_block = $syntax->{dictblock}[1];
       }
       elsif ($in_block == 3) {
-        $end_block = $syntax->{json}[1];
+        $end_block = $syntax->{jsonblock}[1];
       }
       ##[ns,load]= $end_block
       if ($line =~ /^\s*\Q$end_block\E\s*$/sm) {
@@ -351,7 +351,7 @@ sub load_defs {
       my $start_template = $syntax->{block}[0];
       my $end_template   = $syntax->{block}[1];
       my $start_dict     = $syntax->{dictblock}[0];
-      my $start_json     = $syntax->{json}[0];
+      my $start_json     = $syntax->{jsonblock}[0];
       my $blockname = '\s*(\w+)\s*';
       my $signature = '\((.*?)\)\s*';
       if ($line =~ /^ $blockname $signature \Q$start_template\E 
