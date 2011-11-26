@@ -100,7 +100,7 @@ qr{
     ; <[Opt]>+
 
   <rule: Opt>
-    <name=(\w+)> \= " <value=(.*?)> "
+    <name=(\w+)> \= "<value=(.*?)>"
   
 }x;
 

@@ -367,6 +367,43 @@ sub invalid_var {
   croak $self->name . " referenced invalid variable '$var'.";
 }
 
+sub parseApplication {
+  my ($self, $match) = @_;
+
+  my $join = getopt(qr/^sep/, $match->{Opts}, '');
+  my $value = $self->get_var($match->{Variable});
+  my $valtype = ref $value;
+  my $template = $match->{Template};
+  my $tempname = $template->{name};
+
+  my @values;
+  if ($valtype eq 'ARRAY') {
+    my $count = scalar @{$value};
+    my $cur   = 0;
+    for my $val (@{$value}) {
+      ##[temp,apply]= $count, $cur
+      my $repeat = Garden::Repeat->new($cur++, $count);
+      $self->context->addLocal($tempname, $repeat);
+      my @rec = ($val);
+      push(@values, $self->get_template($template, \@rec));
+    }
+  }
+  elsif ($valtype eq 'HASH') {
+    my @keys = sort keys %{$value};
+    my $count = scalar @keys;
+    my $cur   = 0;
+    for my $key (@keys) {
+      my $repeat = Garden::Repeat->new($cur++, $count);
+      $self->context->addLocal($tempname, $repeat);
+      my $val = $value->{$key};
+      my @rec = ($key, $val);
+      push(@values, $self->get_template($template, \@rec));
+    }
+  }
+  $self->context->delLocal($tempname);
+  return join($join, @values);
+}
+
 1; ## Temporary, until the following stuff is fixed.
 
 =broken
@@ -425,40 +462,6 @@ sub conditional {
   else {
     return ''; ## Death to failed conditionals.
   }
-}
-
-sub apply {
-  my ($self, $match) = @_;
-  my @values;
-  my $join = getopt(qr/^sep/, $opts, '');
-  my $valtype = ref $value;
-  if ($valtype eq 'ARRAY') {
-    my $count = scalar @{$value};
-    my $cur   = 0;
-    for my $val (@{$value}) {
-      ##[temp,apply]= $count, $cur
-      my $repeat = Garden::Repeat->new($cur++, $count);
-      $context->addLocal($template, $repeat);
-      my @rec = ($val);
-      push(@values, $self->callTemplate($template, $params, 
-        $context, \@rec));
-    }
-  }
-  elsif ($valtype eq 'HASH') {
-    my @keys = sort keys %{$value};
-    my $count = scalar @keys;
-    my $cur   = 0;
-    for my $key (@keys) {
-      my $repeat = Garden::Repeat->new($cur++, $count);
-      $context->addLocal($template, $repeat);
-      my $val = $value->{$key};
-      my @rec = ($key, $val);
-      push(@values, $self->callTemplate($template, $params,
-        $context, \@rec));
-    }
-  }
-  $context->delLocal($template);
-  return join($join, @values);
 }
 
 =back
