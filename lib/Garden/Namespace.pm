@@ -260,6 +260,12 @@ sub import_namespace {
 
   my $namespace = $self->engine->get_namespace($nsid, paths => $self->{paths});
 
+  ## If an included namespace used globals, so do we.
+  ## This doesn't go in reverse, sorry.
+  if ($namespace->isext('globals')) {
+    $self->{extensions}{globals} = 1;
+  }
+
   ## Okay, now import what we've requested.
   for my $import (@imports) {
     my %import = %{$namespace->{$import}};
