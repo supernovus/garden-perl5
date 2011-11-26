@@ -1,14 +1,6 @@
 Garden: A Functional Template Engine (Perl 5 implementation)
 -------------------------------------------------------------
 
-THIS BRANCH IS NOT FOR PUBLIC USE YET!
-
-I'm working on migrating Garden to using Regexp::Grammar, which will have
-a cleaner internal representation, and will be able to handle things that
-the current regexes can't handle.
-
-===
-
 Garden is the name of a Template language I am designing, and plan to develop
 several implementations in various programming languages.
 
