@@ -24,6 +24,8 @@
 = Things to do for version 2.0 =
 
 ***  [ext]  Dynamic statements via Globals.
-**   [core] Line-ignoring template blocks.
+***  [core] Block options.
+***  [core] More flexible export rules (using block options.)
+***  [core] Whitespace rules for blocks (using block options.)
 *    [core] Anonymous templates.
 
