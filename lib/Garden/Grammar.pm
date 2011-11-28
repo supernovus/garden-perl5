@@ -73,7 +73,7 @@ qr{
     <name=(\w+)> \= <Variable>
 
   <token: Template>
-    ( <name=(\w+)> | <var=Indirect> ) <Method=TemplateMethod>
+    ( <name=([\w\/]+)> | <var=Indirect> ) <Method=TemplateMethod>
 
   <rule: Indirect>
     \( <Variable> \)
