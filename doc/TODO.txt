@@ -27,5 +27,7 @@
 ***  [core] Block options.
 ***  [core] More flexible export rules (using block options.)
 ***  [core] Whitespace rules for blocks (using block options.)
+***  [ext]  Template Arrays (using block options.)
+*    [core] Anonymous inline arrays.
 *    [core] Anonymous templates.
 
