@@ -331,8 +331,16 @@ sub get_template {
   }
   my $name = $self->get_template_name($template);
 
-  my %call; ## populate with the call parameters.
-  my $rec=0; ## For recursion, what entry are we on?
+  my %call;  ## populate with the call parameters.
+  my $pos=0; ## For declared positionals, what entry are we on?
+  my $cur=0; ## For 
+
+  my $nested = $self->namespace->get($name);
+  my @sig = @{$nested->signature};
+  my %needs;
+  for my $sig (@sig) {
+    $needs{$sig} = 1;
+  }
 
   if ($params) {
     for my $param (@{$params}) {
@@ -348,19 +356,22 @@ sub get_template {
           croak "Attempt to use a positional variable in an invalid location.";
         }
         my $name = $param->{Positional}{var};
-        $call{$name} = $recurse->[$rec++];
+        $call{$name} = $recurse->[$pos++];
       }
       elsif ($param->{Variable}) {
         my $name = $param->{Variable}{var};
         my $val  = $self->get_var($param->{Variable});
+        if (!exists $needs{$name}) {
+          $name = $sig[$cur];
+        }
         $call{$name} = $val;
       }
       else {
         $self->invalid_var($param->{""});
       }
+      $cur++;
     }
   }
-  my $nested = $self->namespace->get($name);
   return $nested->render(\%call, $self->context->local);
 }
 
@@ -429,13 +440,13 @@ sub parseConditional {
     if ($cond->{Negated}) {
       $true = 0;
     }
+    my $varname = $cond->{Variable}{var};
     my $value = $self->get_var($cond->{Variable});
-    if (!defined $value || $value eq $cond->{Variable}{var}) { 
-      ## Couldn't find anything, skip it.
-      $c++;
-      next;
-    }
-    if (($true && $value)||(!$true && !$value)) {
+    if (
+      ($true && ($value && $value ne $varname))
+      ||
+      (!$true && (!$value || $value eq $varname))
+    ) {
       my $template = $actions[$c]->{Template};
       return $self->get_template($template);
     }
