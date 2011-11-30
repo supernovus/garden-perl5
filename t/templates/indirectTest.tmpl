@@ -1,18 +1,18 @@
 ## A simple test for indirect attribute and template calls.
 
 indirectTest (hash, key) {{
-[[key]] is [[hash.(key)]]
+[[key]] is [[hash.`key`]]
 }}
 
 withTemplate (template) {{
-[[(template)()]]
+[[`template`()]]
 }}
 
 templateOne () {{ First template }}
 templateTwo () {{ Second template }}
 
 withApply (array, template) {{
-[[array:(template)(*item); sep=", "]]
+[[array:`template`(*item); sep=", "]]
 }}
 
 applyOne (item) {{ <[[item]]> }}

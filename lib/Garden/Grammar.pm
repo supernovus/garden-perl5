@@ -69,13 +69,15 @@ qr{
     (??{ quotemeta $SYNTAX->{negate} })
 
   <rule: NamedParam>
-    <name=(\w+)> \= <Variable>
+    <name=(\w+)> \= ( <Variable> | <Template> )
 
   <token: Template>
     ( <name=([\w\/]+)> | <var=Indirect> ) <Method=TemplateMethod>
 
   <rule: Indirect>
-    \( <Variable> \)
+    (??{ quotemeta $SYNTAX->{indirect}[0] })
+    <Variable>
+    (??{ quotemeta $SYNTAX->{indirect}[1] })
 
   <token: TemplateCall> 
     <.startEx> <Template> <.endEx>

@@ -172,7 +172,8 @@ sub get_attrib {
         ##[methods]= $sig
         if ($sig->{NamedParam}) {
           my $sname = $sig->{NamedParam}{name};
-          my $sval = $self->get_var($sig->{NamedParam}{Variable});
+          my $sval = $self->get_param($sig->{NamedParam}); 
+          #$self->get_var($sig->{NamedParam}{Variable});
           push(@params, $sname, $sval);
         }
         else {
@@ -338,7 +339,8 @@ sub get_template {
       ##[template]= $param
       if ($param->{NamedParam}) {
         my $name = $param->{NamedParam}{name};
-        my $val  = $self->get_var($param->{NamedParam}{Variable});
+        my $val  = $self->get_param($param->{NamedParam});
+        #$self->get_var($param->{NamedParam}{Variable});
         $call{$name} = $val;
       }
       elsif ($param->{Positional}) {

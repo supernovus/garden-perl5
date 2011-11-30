@@ -23,13 +23,8 @@ The guy says: [[sayGreets(dude=name, greets=greeting)]].
 sayGreets (dude, greets) {{ "Yo [[dude]]! [[greets]]" }}
 
 ## Finally, an include using named params, with one pointing to a template.
-## Due to a regression, you cannot assign a named parameter to the output
-## of a template directly, instead you need to use an alias. Not too big of
-## a deal, but I'm hoping to work on the grammar once version 1.0 is out the
-## door, and make it a little more flexible.
 passNameTemplate (name) {{
-[[greets=myGreeting(name)]]
-The dude says: [[sayGreets(dude=name, greets)]]!
+The dude says: [[sayGreets(dude=name, greets=myGreeting(name))]]!
 }}
 
 myGreeting (name) {{ It's been a while since I've seen ya [[name]] }}
