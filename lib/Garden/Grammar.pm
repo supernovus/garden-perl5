@@ -30,8 +30,9 @@ qr{
 
   <token: Conditional>
     <.startEx>
-    <[Condition]>+
     (??{ quotemeta $SYNTAX->{condition}[0] })
+    <[Condition]>+
+    <.Apply>
     <[Actions]>+
     <.endEx>
 

@@ -3,7 +3,7 @@ block "{", "}"
 dictblock "[", "]"
 comment "<--", "-->"
 condition "if ", "|"
-alias "@", "::="
+alias "::="
 positional "&"
 apply "->"
 negate "-"
@@ -19,8 +19,8 @@ $users -> userList(&user)$
 }
 
 userList (user) {
-$@name::=user.name$
-$@admin::=user.admin$
+$name::=user.name$
+$admin::=user.admin$
   * $name$ $if -admin->isUser()|isAdmin()$
 }
 

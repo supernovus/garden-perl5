@@ -72,7 +72,7 @@ Create a new Garden object. This can take several optional parameters:
   block        Delimiters for a template block                   ['{{', '}}']
   dictblock    Delimiters for a dictionary block                 ['{[', ']}']
   comment      Delimiters for a comment block                    ['/*', '*/']
-  condition    Marker and separator for conditional statements   [ '?', ';' ]
+  condition    Start and separator for conditional statements    [ '?', ';' ]
   alias        Marker for alias statements                       '='
   note         Prefix for a here-to-newline comment              '##'
   positional   Prefix for positional parameters                  '*'

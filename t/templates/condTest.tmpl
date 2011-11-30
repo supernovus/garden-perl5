@@ -1,11 +1,11 @@
 condTest (basic) {{
-[[basic?Yes();No()]]
+[[?basic:Yes();No()]]
 }}
 
 Yes () {{ Yes }}
 No  () {{ No  }}
 
-More (first, second) {{ [[first;second?First();Second();None()]] }}
+More (first, second) {{ [[?first;second:First();Second();None()]] }}
 
 First  () {{ The first one.  }}
 Second () {{ The second one. }}
@@ -13,10 +13,10 @@ None   () {{ None of them.   }}
 
 NoDef (okay) {{
 Q. Is it okay?
-[[okay?Yes()]]
+[[?okay:Yes()]]
 }}
 
 Negated (okay) {{
-[[!okay?Yes();No()]]
+[[?!okay:Yes();No()]]
 }}
 
