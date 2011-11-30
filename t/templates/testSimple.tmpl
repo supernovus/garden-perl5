@@ -28,7 +28,7 @@ sayGreets (dude, greets) {{ "Yo [[dude]]! [[greets]]" }}
 ## a deal, but I'm hoping to work on the grammar once version 1.0 is out the
 ## door, and make it a little more flexible.
 passNameTemplate (name) {{
-[[::greets=myGreeting(name)]]
+[[greets=myGreeting(name)]]
 The dude says: [[sayGreets(dude=name, greets)]]!
 }}
 

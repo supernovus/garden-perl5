@@ -22,18 +22,16 @@ qr{
 
   <rule: Alias>  
     <.startEx>
-    (??{ quotemeta $SYNTAX->{alias}[0] })
     <alias=(\w+)>
-    (??{ quotemeta $SYNTAX->{alias}[1] })
+    (??{ quotemeta $SYNTAX->{alias} })
     ( <Variable> | <Template> )
     <.endEx>
     \s*?\n?
 
   <token: Conditional>
     <.startEx>
-    (??{ quotemeta $SYNTAX->{condition}[0] })
     <[Condition]>+
-    <.Apply>
+    (??{ quotemeta $SYNTAX->{condition}[0] })
     <[Actions]>+
     <.endEx>
 

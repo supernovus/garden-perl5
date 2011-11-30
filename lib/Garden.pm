@@ -72,8 +72,8 @@ Create a new Garden object. This can take several optional parameters:
   block        Delimiters for a template block                   ['{{', '}}']
   dictblock    Delimiters for a dictionary block                 ['{[', ']}']
   comment      Delimiters for a comment block                    ['/*', '*/']
-  condition    Start and separator for conditional statements    [ '?', ';' ]
-  alias        Start and separator for alias statements          ['::', '=' ]
+  condition    Marker and separator for conditional statements   [ '?', ';' ]
+  alias        Marker for alias statements                       '='
   note         Prefix for a here-to-newline comment              '##'
   positional   Prefix for positional parameters                  '*'
   apply        Symbol to apply a template                        ':'
@@ -96,8 +96,8 @@ sub new {
       jsonblock  => ['{<', '>}'],
       comment    => ['/*', '*/'],
       condition  => [ '?', ';' ],
-      alias      => ['::', '=' ],
       note       => '##',
+      alias      => '=',
       positional => '*',
       apply      => ':',
       negate     => '!',
