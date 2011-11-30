@@ -74,7 +74,7 @@ Create a new Garden object. This can take several optional parameters:
   comment      Delimiters for a comment block                    ['/*', '*/']
   condition    Start and separator for conditional statements    [ '?', ';' ]
   alias        Start and separator for alias statements          ['::', '=' ]
-  note         Prefix for a here-to-newline comment              '//'
+  note         Prefix for a here-to-newline comment              '##'
   positional   Prefix for positional parameters                  '*'
   apply        Symbol to apply a template                        ':'
   negate       Prefix to negate conditions                       '!'
