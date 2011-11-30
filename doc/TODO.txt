@@ -11,9 +11,9 @@
 
 = Things to do in version 1.1 =
 
-***  Update to a completed Spec Release 1.
 ***  Add tests for the JSON extension.
 ***  Add tests for the Global variable extension.
+***  Clean up the newer positional parameters to remove warnings.
 
 = Things to do in upcoming 1.x releases =
 
@@ -23,11 +23,5 @@
 
 = Things to do for version 2.0 =
 
-***  [ext]  Dynamic statements via Globals.
-***  [core] Block options.
-***  [core] More flexible export rules (using block options.)
-***  [core] Whitespace rules for blocks (using block options.)
-***  [ext]  Template Arrays (using block options.)
-*    [core] Anonymous inline arrays.
-*    [core] Anonymous templates.
+***  Implement the Version 2 spec, when it's released.
 
