@@ -42,7 +42,7 @@ our $VERSION = 1.1;
 ## The following will be set to a string representing a development
 ## release, if we are not yet a stable release. It will be set to
 ## 0 if this is a stable release.
-our $DEVEL = 'RC6';
+our $DEVEL = 0;
 
 use constant MIN_SPEC => 1; ## The lowest version of the spec we can parse.
 use constant MAX_SPEC => 1; ## The highest version of the spec we can parse.
@@ -94,7 +94,7 @@ sub new {
       delimiters => ['[[', ']]'],
       block      => ['{{', '}}'],
       dictblock  => ['{[', ']}'],
-      jsonblock  => ['{<', '>}'],
+      json       => ['{<', '>}'],
       comment    => ['/*', '*/'],
       condition  => [ '?', ';' ],
       indirect   => [ '`', '`' ],

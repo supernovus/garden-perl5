@@ -100,8 +100,8 @@ qr{
   <rule: Opts>
     ; <[Opt]>+
 
-  <rule: Opt>
-    <name=(\w+)> \= "<value=(.*?)>"
+  <token: Opt>
+    <name=(\w+)> \s* \= \s* "<value=(.*?)>"
   
 }x;
 

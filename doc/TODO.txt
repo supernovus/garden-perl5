@@ -9,17 +9,12 @@
 ## If a COULD or SHOULD item doesn't make it in the target
 ## it will be moved to the next target.
 
-= Things to do in version 1.1 =
-
-***  Add tests for the JSON extension.
-***  Add tests for the Global variable extension.
-***  Clean up the newer positional parameters to remove warnings.
-
 = Things to do in upcoming 1.x releases =
 
 **   Add ability to load templates/namespaces from strings.
 **   Tweak grammar for flexibility, speed, etc.
 **   Add tests for invalid behaviors (dies_ok, etc.)
+**   Expand test coverage.
 
 = Things to do for version 2.0 =
 

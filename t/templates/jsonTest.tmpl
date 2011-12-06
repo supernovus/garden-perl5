@@ -1,0 +1,14 @@
+use json
+json "(((", ")))"
+
+MyDict (((
+  {
+    "greet" : "Hello",
+    "name"  : "World",
+    "state" : [ "how", "are", "you?" ]
+  }
+)))
+
+jsonTest () {{
+[[MyDict.greet]] [[MyDict.name]], [[MyDict.state; sep=" "]]
+}}
